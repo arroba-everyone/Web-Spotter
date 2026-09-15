@@ -1,0 +1,137 @@
+---
+/**
+ * «Aquí se viene a entrenar»: qué es un Spot y por qué da seguridad.
+ *
+ * El brief pide explicar que quien da el Spot no puede escribir hasta que le
+ * contesten (§8, punto 4). Se cuenta con dos reglas cortas y con la demo que se
+ * puede pulsar; la captura del aviso real va detrás, algo girada, como prueba
+ * de que no es un invento de la web.
+ */
+import PhoneFrame from './PhoneFrame.astro';
+import SectionHeading from './SectionHeading.astro';
+import SpotDemo from '../islands/SpotDemo.astro';
+import { captures } from '../domain/captures';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+---
+
+<section class="spot" id="spot">
+  <div class="spot__inner pageContainer">
+    <div class="spot__text">
+      <SectionHeading eyebrow={t.spot.eyebrow} title={t.spot.title} lead={t.spot.body} />
+
+      <ul class="spot__rules">
+        {
+          t.spot.rules.map((rule, index) => (
+            <li class="spot__rule reveal">
+              <span class="spot__ruleNumber">{index + 1}</span>
+              <div>
+                <h3 class="spot__ruleTitle">{rule.title}</h3>
+                <p class="spot__ruleBody">{rule.body}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="spot__stage">
+      <div class="spot__backPhone" aria-hidden="true">
+        <PhoneFrame image={captures.spotNotice} alt="" width="250px" sizes="250px" tilt={false} />
+      </div>
+      <div class="spot__demo reveal">
+        <SpotDemo />
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .spot {
+    padding-block: var(--sectionPadding);
+    overflow: hidden;
+  }
+
+  .spot__inner {
+    display: grid;
+    gap: var(--space16);
+    align-items: center;
+  }
+
+  .spot__rules {
+    display: grid;
+    gap: var(--space6);
+    margin-top: var(--space12);
+  }
+
+  .spot__rule {
+    display: flex;
+    gap: var(--space4);
+  }
+
+  /* Número en un círculo tintado, como los iconos de las listas de la app. */
+  .spot__ruleNumber {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--colorBrand) 18%, transparent);
+    color: var(--colorBrand);
+    font-weight: var(--fontWeightBold);
+  }
+
+  .spot__ruleTitle {
+    font-size: var(--fontSizeHeadline);
+    font-weight: var(--fontWeightSemibold);
+  }
+
+  .spot__ruleBody {
+    max-width: 40ch;
+    margin-top: var(--space1);
+    color: var(--colorTextSecondary);
+  }
+
+  .spot__stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+
+  .spot__backPhone {
+    display: none;
+  }
+
+  .spot__demo {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  @media (min-width: 900px) {
+    .spot__inner {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space8);
+    }
+
+    .spot__stage {
+      min-height: 620px;
+    }
+
+    .spot__backPhone {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: block;
+      opacity: 0.55;
+      rotate: 8deg;
+    }
+
+    .spot__demo {
+      justify-content: start;
+    }
+  }
+</style>

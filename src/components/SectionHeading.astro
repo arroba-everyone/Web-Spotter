@@ -1,0 +1,54 @@
+---
+/**
+ * Rótulo, titular y entradilla de una sección.
+ *
+ * Todas las secciones abren igual, así que se escribe una vez. El nivel del
+ * titular se puede cambiar para que la jerarquía del documento siga siendo
+ * correcta aunque la sección vaya dentro de otra.
+ */
+interface Props {
+  eyebrow: string;
+  title: string;
+  lead?: string;
+  align?: 'start' | 'center';
+  level?: 'h2' | 'h3';
+}
+
+const { eyebrow, title, lead, align = 'start', level = 'h2' } = Astro.props;
+const Heading = level;
+---
+
+<header class:list={['sectionHeading', `sectionHeading--${align}`, 'reveal']}>
+  <p class="eyebrow">{eyebrow}</p>
+  <Heading class="sectionHeading__title">{title}</Heading>
+  {lead && <p class="sectionHeading__lead">{lead}</p>}
+</header>
+
+<style>
+  .sectionHeading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space4);
+  }
+
+  .sectionHeading--center {
+    align-items: center;
+    text-align: center;
+  }
+
+  .sectionHeading__title {
+    max-width: 18ch;
+    font-size: var(--fontSizeTitle);
+    font-weight: var(--fontWeightBlack);
+    line-height: var(--lineHeightTight);
+    letter-spacing: var(--letterSpacingTitle);
+    text-wrap: balance;
+  }
+
+  .sectionHeading__lead {
+    max-width: 52ch;
+    font-size: var(--fontSizeLead);
+    color: var(--colorTextSecondary);
+    text-wrap: pretty;
+  }
+</style>

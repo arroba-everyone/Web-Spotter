@@ -1,0 +1,23 @@
+# Redirecciones de la web anterior (WordPress) a la nueva, para Netlify.
+#
+# Google tiene indexadas estas direcciones. Si al cambiar de web dieran error, se
+# perdería lo que ya posicionaban y cualquier enlace antiguo acabaría en una 404.
+# «301» le dice a Google que el cambio es permanente y que traspase la relevancia.
+#
+# Sacadas del sitemap de spotterapp.es el 15/09/2026. «/descarga» no está aquí
+# porque la web nueva tiene esa misma página. Netlify trata igual las rutas con y
+# sin barra final, así que basta con una línea por dirección.
+# Sintaxis: https://docs.netlify.com/manage/routing/redirects/overview/
+
+/contacto              /                301
+/post-1                /                301
+/post-2                /                301
+/post-3                /                301
+/hola-mundo            /                301
+/category/*            /                301
+/form/*                /                301
+/feed/*                /                301
+/wp-admin/*            /                301
+/wp-login.php          /                301
+/sitemap_index.xml     /sitemap.xml     301
+/wp-sitemap.xml        /sitemap.xml     301

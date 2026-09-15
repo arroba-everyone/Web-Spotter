@@ -1,0 +1,30 @@
+---
+/**
+ * Documentos legales en español: «/privacidad» y «/terminos».
+ *
+ * Las direcciones no se traducen: el inglés usa las mismas («/en/privacidad»).
+ * Es a propósito — con una sola tabla de rutas, el selector de idioma funciona
+ * en cualquier página sin tener que mantener un mapa de equivalencias.
+ */
+import { getCollection } from 'astro:content';
+import LegalPage from '../components/LegalPage.astro';
+
+export async function getStaticPaths() {
+  // Solo se publican los documentos ya revisados. Un borrador con huecos por
+  // rellenar no puede estar en la web pública, ni aunque nadie lo enlace.
+  const documents = await getCollection(
+    'legal',
+    ({ id, data }) => id.startsWith('es/') && !data.needsLegalReview,
+  );
+
+  return documents.map((entry) => ({
+    // El identificador es «es/privacidad»; la dirección solo usa la última parte.
+    params: { documento: entry.id.split('/').pop() },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+---
+
+<LegalPage entry={entry} />

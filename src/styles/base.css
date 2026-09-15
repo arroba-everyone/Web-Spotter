@@ -1,0 +1,187 @@
+/*
+ * Estilos base: reinicio mínimo y utilidades compartidas por todas las páginas.
+ * Aquí no hay nada específico de una sección; eso vive en cada componente.
+ */
+
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* El scroll suave lo pide el navegador, no una librería. */
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--colorBackground);
+  color: var(--colorTextPrimary);
+  font-family: var(--fontFamilyBase);
+  font-size: var(--fontSizeBody);
+  line-height: var(--lineHeightNormal);
+  -webkit-font-smoothing: antialiased;
+  /* Evita que un elemento ancho (una fila de capturas) genere scroll lateral. */
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+p,
+figure,
+blockquote {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* El foco solo se dibuja cuando se navega con teclado, no al hacer clic. */
+:focus-visible {
+  outline: 2px solid var(--colorBrand);
+  outline-offset: 3px;
+  border-radius: var(--radiusSmall);
+}
+
+/* Quien haya pedido menos movimiento en su sistema, no lo recibe. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- Utilidades ------------------------------------------------------- */
+
+/* Contenedor estándar de página: ancho máximo y margen lateral coherentes. */
+.pageContainer {
+  width: 100%;
+  max-width: var(--pageMaxWidth);
+  margin-inline: auto;
+  padding-inline: var(--pageGutter);
+}
+
+/* Texto visible solo para lectores de pantalla. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * Rótulo pequeño encima de cada titular de sección.
+ *
+ * Aparece en todas las secciones, así que vive aquí y no copiado en cada una.
+ * Va en formato frase y no en mayúsculas, como los títulos de sección de la app.
+ */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space2);
+  font-size: var(--fontSizeCaption);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorBrand);
+}
+
+/* El punto rojo delante del rótulo: un guiño al pin del logotipo. */
+.eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/*
+ * Cristal, con las reglas del brief: solo para controles, nunca para contenido,
+ * y nunca un cristal dentro de otro.
+ */
+.glass {
+  background-color: var(--glassFill);
+  -webkit-backdrop-filter: var(--glassBlur);
+  backdrop-filter: var(--glassBlur);
+  border: 1px solid var(--glassBorder);
+  box-shadow: var(--glassShadow);
+}
+
+/* Sin desenfoque, o si el sistema pide menos transparencia: fondo sólido, para
+   que lo que va encima siga leyéndose. */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass {
+    background-color: var(--glassSolidFill);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background-color: var(--glassSolidFill);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/*
+ * Aparición al entrar en pantalla, sin JavaScript.
+ *
+ * La animación va ligada a la posición del elemento en la ventana, no al reloj:
+ * se ve al bajar y se deshace al subir. Solo se aplica si el navegador lo
+ * entiende y si nadie ha pedido menos movimiento; en cualquier otro caso el
+ * elemento simplemente está ahí desde el principio.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: revealUp linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 55%;
+    }
+  }
+}
+
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    translate: 0 48px;
+    scale: 0.97;
+  }
+}
+

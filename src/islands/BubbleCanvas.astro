@@ -1,0 +1,455 @@
+---
+/**
+ * Las cinco burbujas de «Descubrir», vivas.
+ *
+ * Vive en «islands» porque carga JavaScript: la separación deja a la vista qué
+ * partes del sitio son HTML puro y cuáles tienen coste.
+ *
+ * Lo que se puede hacer con ellas, igual que en la app (brief, §3 y §7):
+ * - Cogerlas y lanzarlas.
+ * - Revolverlas con un botón o, en el móvil, agitándolo.
+ * - Pasar el ratón por encima: se apartan un poco.
+ *
+ * Quién sale y con qué foto lo decide «domain/dailySeries»; cómo se mueven,
+ * «domain/bubbleField». Aquí solo se pinta y se escuchan gestos.
+ */
+import { sportColor } from '../domain/sports';
+import { dailySeries } from '../domain/dailySeries';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+---
+
+<div class="bubbleScene" data-bubble-scene>
+  <p class="bubbleScene__label">
+    <span>{t.hero.seriesLabel}</span>
+    <span aria-hidden="true">·</span>
+    <span data-series-countdown data-template={t.hero.changesIn}>{t.hero.changesAtMidnight}</span>
+  </p>
+
+  <div
+    class="bubbleCanvas"
+    data-bubble-canvas
+    data-sports={dailySeries.map((member) => member.sportId).join(',')}
+    role="img"
+    aria-label={t.hero.bubblesLabel}
+  >
+    {
+      dailySeries.map((member, index) => (
+        <div
+          class="bubble"
+          data-bubble-index={index}
+          style={`--sportColor: ${sportColor(member.sportId)}; --enterOrder: ${index}`}
+        >
+          {member.photo ? (
+            <img
+              class="bubble__photo"
+              src={member.photo}
+              alt=""
+              width="700"
+              height="700"
+              draggable="false"
+              style={`--photoFocus: ${member.focus}; --photoZoom: ${member.zoom ?? 1}`}
+            />
+          ) : (
+            <span class="bubble__initial">{member.initials.slice(0, 1)}</span>
+          )}
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="bubbleScene__controls">
+    <button class="bubbleScene__shuffle glass" type="button" data-bubble-shuffle>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h3.5c4 0 5 10 9 10H20M17 14l3 3-3 3M4 17h3.5c1.4 0 2.4-1.2 3.3-2.7M17 4l3 3-3 3M20 7h-3.5c-1.4 0-2.4 1.2-3.3 2.7" />
+      </svg>
+      {t.hero.shuffle}
+    </button>
+    <span class="bubbleScene__hint">{t.hero.dragHint}</span>
+  </div>
+</div>
+
+<style>
+  .bubbleScene {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: var(--space4);
+    height: 100%;
+  }
+
+  /* El rótulo de la app, arriba y en gris pequeño (brief, §7). */
+  .bubbleScene__label {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space2);
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+    text-align: center;
+  }
+
+  .bubbleCanvas {
+    position: relative;
+    min-height: 0;
+    /* Decorativo: que arrastrar no seleccione texto ni haga scroll en el móvil. */
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  .bubble {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /*
+     * Tamaño de respaldo, por si el guion no llegara a colocarlas: sin él, una
+     * burbuja sin medidas propias se estira hasta ocupar el contenedor entero.
+     */
+    width: 96px;
+    height: 96px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    /* Recorta la foto al círculo. Las fotos llevan acercamiento y sin esto se salen. */
+    overflow: hidden;
+    /*
+     * Sin aro (brief, §5): el aro de color queda reservado para las historias.
+     * Lo que despega la foto del negro es un halo suave del color del deporte.
+     */
+    box-shadow:
+      0 12px 44px color-mix(in srgb, var(--sportColor) 50%, transparent),
+      0 2px 10px rgb(0 0 0 / 50%);
+    /* Sin foto, la inicial va sobre un degradado del color del deporte. */
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--sportColor) 100%, #ffffff 18%),
+      color-mix(in srgb, var(--sportColor) 70%, #000000)
+    );
+    cursor: grab;
+    /* La posición la escribe el bucle en «transform»; el centrado usa
+       «translate», que es otra propiedad, y así no se pisan. */
+    translate: -50% -50%;
+    will-change: transform;
+    transition: scale var(--durationNormal) var(--easingSpring);
+  }
+
+  .bubble:hover {
+    scale: 1.04;
+  }
+
+  .bubble:active {
+    cursor: grabbing;
+    scale: 1.08;
+  }
+
+  .bubble__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--photoFocus);
+    transform: scale(var(--photoZoom));
+    transform-origin: var(--photoFocus);
+    pointer-events: none;
+  }
+
+  .bubble__initial {
+    font-size: 2.4rem;
+    font-weight: var(--fontWeightBold);
+    color: #ffffff;
+  }
+
+  .bubbleScene__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space4);
+  }
+
+  .bubbleScene__shuffle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space2);
+    height: var(--buttonHeightCompact);
+    padding-inline: var(--space4);
+    border-radius: var(--radiusPill);
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightSemibold);
+    transition:
+      background-color var(--durationFast) var(--easingStandard),
+      scale var(--durationFast) var(--easingStandard);
+  }
+
+  .bubbleScene__shuffle:hover {
+    background-color: var(--glassFillHover);
+  }
+
+  .bubbleScene__shuffle:active {
+    scale: 0.95;
+  }
+
+  .bubbleScene__shuffle svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .bubbleScene__hint {
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextTertiary);
+  }
+
+  /* Hasta que el guion no las ha colocado, no hay nada que enseñar. */
+  .bubbleCanvas:not([data-ready]) .bubble {
+    opacity: 0;
+  }
+
+  /* Entran subiendo desde abajo, una detrás de otra. Se anima «translate» y no
+     «transform» porque «transform» lo escribe la simulación en cada fotograma. */
+  @media (prefers-reduced-motion: no-preference) {
+    .bubbleCanvas[data-ready] .bubble {
+      animation: bubbleEnters 900ms var(--easingSpring) both;
+      animation-delay: calc(var(--enterOrder) * 110ms);
+    }
+
+    @keyframes bubbleEnters {
+      from {
+        translate: -50% 340%;
+        opacity: 0;
+      }
+      to {
+        translate: -50% -50%;
+        opacity: 1;
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bubbleCanvas[data-ready] .bubble {
+      opacity: 1;
+    }
+  }
+</style>
+
+<script>
+  import { BubbleField } from '../domain/bubbleField';
+  import { hoursUntilMidnight } from '../domain/countdown';
+  import type { SportId } from '../domain/sports';
+
+  /** Aceleración a partir de la cual se considera que el móvil se ha agitado, en m/s². */
+  const SHAKE_THRESHOLD = 22;
+  /** Tiempo mínimo entre dos sacudidas, para que un meneo no cuente cinco veces. */
+  const SHAKE_COOLDOWN_MS = 900;
+  /** Cada cuánto se refresca la cuenta atrás. Cambia de hora en hora: basta con un minuto. */
+  const COUNTDOWN_REFRESH_MS = 60_000;
+
+  /** La cuenta atrás del rótulo. Sin guion se queda en «Cambian a medianoche». */
+  function startCountdown(scene: HTMLElement): void {
+    const label = scene.querySelector<HTMLElement>('[data-series-countdown]');
+    const template = label?.dataset.template;
+    if (!label || !template) return;
+
+    const render = () => {
+      label.textContent = template.replace('{hours}', String(hoursUntilMidnight(new Date())));
+    };
+    render();
+    window.setInterval(render, COUNTDOWN_REFRESH_MS);
+  }
+
+  /**
+   * Conecta la simulación con el DOM.
+   *
+   * Todo lo que hay aquí es vista: medir, escuchar gestos y escribir posiciones.
+   */
+  function startBubbleScene(scene: HTMLElement): void {
+    const canvas = scene.querySelector<HTMLElement>('[data-bubble-canvas]');
+    // El módulo puede ejecutarse dos veces al recargar en caliente durante el
+    // desarrollo; sin esta marca habría dos simulaciones peleándose.
+    if (!canvas || canvas.dataset.started !== undefined) return;
+    canvas.dataset.started = '';
+
+    startCountdown(scene);
+
+    const elements = Array.from(canvas.querySelectorAll<HTMLElement>('[data-bubble-index]'));
+    const sportIds = (canvas.dataset.sports ?? '').split(',') as SportId[];
+    if (elements.length === 0 || sportIds.length === 0) return;
+
+    let field: BubbleField | null = null;
+
+    function paint(): void {
+      if (!field) return;
+      field.all.forEach((bubble, index) => {
+        const element = elements[index];
+        if (!element) return;
+        const diameter = bubble.radius * 2;
+        element.style.width = `${diameter}px`;
+        element.style.height = `${diameter}px`;
+        element.style.transform = `translate3d(${bubble.x}px, ${bubble.y}px, 0)`;
+      });
+    }
+
+    // Quien pide menos movimiento ve la composición quieta, pero la puede arrastrar.
+    const prefersStillness = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    let lastTimestamp = 0;
+    let animationId = 0;
+
+    function frame(timestamp: number): void {
+      const deltaSeconds = lastTimestamp === 0 ? 0 : (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+      field?.step(deltaSeconds);
+      paint();
+      animationId = requestAnimationFrame(frame);
+    }
+
+    function startLoop(): void {
+      if (animationId !== 0 || !field || prefersStillness.matches) return;
+      lastTimestamp = 0;
+      animationId = requestAnimationFrame(frame);
+    }
+
+    /** Crea el campo la primera vez y lo redimensiona las siguientes. Ignora medidas de cero. */
+    function useSize(width: number, height: number): void {
+      if (width === 0 || height === 0) return;
+      if (field) {
+        field.resize(width, height);
+      } else {
+        field = new BubbleField(sportIds, width, height);
+        canvas!.dataset.ready = '';
+        startLoop();
+      }
+      paint();
+    }
+
+    new ResizeObserver(([entry]) => {
+      if (entry) useSize(entry.contentRect.width, entry.contentRect.height);
+    }).observe(canvas);
+
+    /*
+     * Se mide también aquí, sin esperar al observador: si el contenedor ya tiene
+     * su tamaño definitivo, el observador puede no avisar nunca y las burbujas se
+     * quedaban sin colocar. Si todavía mide cero, se reintenta en el siguiente
+     * fotograma, con un límite para no dejar un bucle vivo en una sección oculta.
+     */
+    let remainingAttempts = 120;
+    function measureNow(): void {
+      if (field || remainingAttempts <= 0) return;
+      remainingAttempts -= 1;
+      const rect = canvas!.getBoundingClientRect();
+      useSize(rect.width, rect.height);
+      if (!field) requestAnimationFrame(measureNow);
+    }
+    measureNow();
+
+    // --- Arrastrar y lanzar ------------------------------------------------
+    let lastDragTimestamp = 0;
+
+    function localPoint(event: PointerEvent): { x: number; y: number } {
+      const rect = canvas!.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      if (!field) return;
+      const point = localPoint(event);
+      const bubble = field.bubbleAt(point.x, point.y);
+      if (!bubble) return;
+      field.grab(bubble.id);
+      field.setPointer(null, null);
+      lastDragTimestamp = event.timeStamp;
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', (event) => {
+      if (!field) return;
+      const point = localPoint(event);
+
+      if (!canvas.hasPointerCapture(event.pointerId)) {
+        // Solo con ratón: en táctil no hay «pasar por encima», solo tocar.
+        if (event.pointerType === 'mouse') field.setPointer(point.x, point.y);
+        return;
+      }
+
+      const deltaSeconds = (event.timeStamp - lastDragTimestamp) / 1000;
+      lastDragTimestamp = event.timeStamp;
+      field.dragTo(point.x, point.y, deltaSeconds);
+      // Con el movimiento desactivado no hay bucle, así que el arrastre se pinta solo.
+      if (animationId === 0) paint();
+    });
+
+    canvas.addEventListener('pointerleave', () => field?.setPointer(null, null));
+
+    function stopDragging(event: PointerEvent): void {
+      if (!field || !canvas!.hasPointerCapture(event.pointerId)) return;
+      canvas!.releasePointerCapture(event.pointerId);
+      field.release();
+    }
+    canvas.addEventListener('pointerup', stopDragging);
+    canvas.addEventListener('pointercancel', stopDragging);
+
+    // --- Revolver --------------------------------------------------------
+    function shuffle(): void {
+      field?.shuffle();
+      // Quien pidió menos movimiento también puede revolverlas: sin bucle, se
+      // avanza la simulación de golpe y se pinta el resultado.
+      if (field && animationId === 0) {
+        for (let step = 0; step < 90; step += 1) field.step(1 / 60);
+        paint();
+      }
+    }
+
+    const shuffleButton = scene.querySelector<HTMLButtonElement>('[data-bubble-shuffle]');
+    shuffleButton?.addEventListener('click', () => {
+      shuffle();
+      void listenToShakes();
+    });
+
+    /*
+     * Agitar el móvil, como en la app.
+     *
+     * En iPhone el navegador exige pedir permiso para leer el movimiento, y solo
+     * deja pedirlo tras un toque del visitante: por eso se intenta al pulsar
+     * «Revuélvelas» la primera vez. En Android basta con escuchar.
+     */
+    let listeningToShakes = false;
+    let lastShake = 0;
+
+    async function listenToShakes(): Promise<void> {
+      if (listeningToShakes || typeof DeviceMotionEvent === 'undefined') return;
+
+      const withPermission = DeviceMotionEvent as unknown as {
+        requestPermission?: () => Promise<'granted' | 'denied'>;
+      };
+      if (withPermission.requestPermission) {
+        try {
+          if ((await withPermission.requestPermission()) !== 'granted') return;
+        } catch {
+          return;
+        }
+      }
+
+      listeningToShakes = true;
+      window.addEventListener('devicemotion', (event) => {
+        const acceleration = event.accelerationIncludingGravity;
+        if (!acceleration) return;
+        const force = Math.hypot(acceleration.x ?? 0, acceleration.y ?? 0, acceleration.z ?? 0);
+        if (force < SHAKE_THRESHOLD || event.timeStamp - lastShake < SHAKE_COOLDOWN_MS) return;
+        lastShake = event.timeStamp;
+        shuffle();
+      });
+    }
+
+    // Android no pide permiso, así que ahí se puede escuchar desde el principio.
+    const needsPermission =
+      typeof DeviceMotionEvent !== 'undefined' &&
+      'requestPermission' in (DeviceMotionEvent as unknown as object);
+    if (!needsPermission) void listenToShakes();
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-bubble-scene]').forEach(startBubbleScene);
+</script>

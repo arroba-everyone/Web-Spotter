@@ -1,0 +1,81 @@
+---
+/**
+ * Botón con forma de cápsula, como en la app.
+ *
+ * Dos variantes y ninguna más (brief, §6):
+ * - «primary»: rojo sólido. Solo para la acción principal, y solo una por sección.
+ * - «glass»: cristal. Para todo lo secundario.
+ *
+ * Es un enlace y no un «button» cuando lleva «href», porque navegar es lo que
+ * hace un enlace y así funciona sin JavaScript, con clic derecho y con teclado.
+ */
+interface Props {
+  variant?: 'primary' | 'glass';
+  href?: string;
+  size?: 'regular' | 'compact';
+  /** Abre en pestaña nueva. Para las tiendas y las redes, que sacan de la web. */
+  external?: boolean;
+  /** Atributos de datos para que una isla encuentre el botón. */
+  [dataAttribute: `data-${string}`]: string | boolean | undefined;
+}
+
+const { variant = 'primary', href, size = 'regular', external = false, ...rest } = Astro.props;
+const classes = ['button', `button--${variant}`, `button--${size}`, { glass: variant === 'glass' }];
+---
+
+{
+  href ? (
+    <a class:list={classes} href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener' : undefined} {...rest}>
+      <slot />
+    </a>
+  ) : (
+    <button class:list={classes} type="button" {...rest}>
+      <slot />
+    </button>
+  )
+}
+
+<style>
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space2);
+    height: var(--buttonHeight);
+    padding-inline: var(--space6);
+    border-radius: var(--radiusPill);
+    font-weight: var(--fontWeightSemibold);
+    white-space: nowrap;
+    transition:
+      background-color var(--durationFast) var(--easingStandard),
+      scale var(--durationFast) var(--easingStandard);
+  }
+
+  .button--compact {
+    height: var(--buttonHeightCompact);
+    padding-inline: var(--space4);
+    font-size: var(--fontSizeCaption);
+  }
+
+  /* Al pulsar se hunde un poco, como un control de iOS. */
+  .button:active {
+    scale: 0.96;
+  }
+
+  .button--primary {
+    background-color: var(--colorBrand);
+    color: #ffffff;
+  }
+
+  .button--primary:hover {
+    background-color: var(--colorBrandPressed);
+  }
+
+  .button--glass {
+    color: var(--colorTextPrimary);
+  }
+
+  .button--glass:hover {
+    background-color: var(--glassFillHover);
+  }
+</style>

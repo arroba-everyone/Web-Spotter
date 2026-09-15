@@ -1,0 +1,54 @@
+---
+/**
+ * Página de error para direcciones que no existen.
+ *
+ * Netlify la sirve sola cuando no encuentra una ruta. No se indexa: una página
+ * de error en los resultados de Google no ayuda a nadie.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Button from '../components/Button.astro';
+import { useTranslations } from '../i18n';
+
+const t = useTranslations('es');
+---
+
+<BaseLayout title={`${t.notFound.title} · Spotter`} noindex>
+  <section class="notFound pageContainer">
+    <p class="notFound__code">404</p>
+    <h1 class="notFound__title">{t.notFound.title}</h1>
+    <p class="notFound__body">{t.notFound.body}</p>
+    <Button href="/">{t.notFound.action}</Button>
+  </section>
+</BaseLayout>
+
+<style>
+  .notFound {
+    display: grid;
+    justify-items: start;
+    align-content: center;
+    gap: var(--space6);
+    min-height: 100svh;
+    padding-block: var(--space20);
+  }
+
+  .notFound__code {
+    font-size: var(--fontSizeMega);
+    font-weight: var(--fontWeightBlack);
+    line-height: 1;
+    letter-spacing: var(--letterSpacingDisplay);
+    color: var(--colorBrand);
+  }
+
+  .notFound__title {
+    font-size: var(--fontSizeTitle);
+    font-weight: var(--fontWeightBlack);
+    line-height: var(--lineHeightTight);
+    letter-spacing: var(--letterSpacingTitle);
+  }
+
+  .notFound__body {
+    max-width: 44ch;
+    font-size: var(--fontSizeLead);
+    color: var(--colorTextSecondary);
+  }
+</style>

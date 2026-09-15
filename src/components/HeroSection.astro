@@ -1,0 +1,159 @@
+---
+/**
+ * Portada: el mensaje a un lado y la serie de hoy, viva, al otro.
+ *
+ * Las burbujas no son una ilustración: son la pantalla principal de la app
+ * funcionando, y lo primero que alguien toca al entrar. En móvil el mensaje va
+ * primero, porque es lo que hay que leer antes de jugar.
+ */
+import StoreBadges from './StoreBadges.astro';
+import Button from './Button.astro';
+import BubbleCanvas from '../islands/BubbleCanvas.astro';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+---
+
+<section class="hero" id="inicio" data-hero>
+  <div class="hero__inner pageContainer">
+    <div class="hero__message">
+      <p class="eyebrow hero__rise" style="--riseOrder: 0">{t.hero.eyebrow}</p>
+
+      <h1 class="hero__title">
+        <span class="hero__rise" style="--riseOrder: 1">{t.hero.titleLine1}</span>
+        <span class="hero__rise" style="--riseOrder: 2">{t.hero.titleLine2}</span>
+        <span class="hero__highlight hero__rise" style="--riseOrder: 3">{t.hero.titleHighlight}</span>
+      </h1>
+
+      <p class="hero__subtitle hero__rise" style="--riseOrder: 4">{t.hero.subtitle}</p>
+
+      <div class="hero__actions hero__rise" style="--riseOrder: 5">
+        <StoreBadges height={52} />
+        <Button variant="glass" href="#como-funciona">{t.hero.secondaryAction}</Button>
+      </div>
+    </div>
+
+    <div class="hero__stage">
+      <BubbleCanvas />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    display: grid;
+    align-items: center;
+    min-height: 100svh;
+    overflow: hidden;
+    /* Deja sitio a la barra flotante de arriba. */
+    padding-block: calc(var(--space20) + var(--space8)) var(--space12);
+  }
+
+  /*
+   * Halo rojo detrás de las burbujas.
+   *
+   * Da profundidad al negro y, sobre todo, pone algo detrás del cristal de los
+   * botones: sobre negro liso el cristal no se nota (brief, §6).
+   */
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    right: -15%;
+    width: min(90vw, 900px);
+    aspect-ratio: 1;
+    background: radial-gradient(circle, var(--colorBrand) 0%, transparent 62%);
+    opacity: 0.22;
+    filter: blur(20px);
+    pointer-events: none;
+  }
+
+  /* Al bajar, la portada se hunde un poco y se oscurece: se nota que se queda atrás. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .hero__inner {
+        animation: heroRecedes linear both;
+        animation-timeline: scroll(root block);
+        animation-range: 0 100svh;
+      }
+    }
+  }
+
+  @keyframes heroRecedes {
+    to {
+      opacity: 0.25;
+      scale: 0.94;
+      translate: 0 8svh;
+    }
+  }
+
+  .hero__inner {
+    position: relative;
+    display: grid;
+    gap: var(--space12);
+    align-items: center;
+  }
+
+  .hero__title {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--space4);
+    font-size: var(--fontSizeDisplay);
+    font-weight: var(--fontWeightBlack);
+    line-height: var(--lineHeightTight);
+    letter-spacing: var(--letterSpacingDisplay);
+  }
+
+  .hero__highlight {
+    color: var(--colorBrand);
+  }
+
+  .hero__subtitle {
+    max-width: 40ch;
+    margin-top: var(--space6);
+    font-size: var(--fontSizeLead);
+    color: var(--colorTextSecondary);
+    text-wrap: pretty;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space4);
+    margin-top: var(--space8);
+  }
+
+  /* Altura fija: la simulación necesita saber su alto antes de colocar nada. */
+  .hero__stage {
+    height: min(72svh, 560px);
+  }
+
+  /* Cada línea del titular sube por su cuenta al cargar, una tras otra. */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__rise {
+      animation: heroRise var(--durationSlow) var(--easingStandard) both;
+      animation-delay: calc(120ms + var(--riseOrder) * 80ms);
+    }
+  }
+
+  @keyframes heroRise {
+    from {
+      opacity: 0;
+      translate: 0 0.6em;
+      filter: blur(8px);
+    }
+  }
+
+  @media (min-width: 900px) {
+    .hero__inner {
+      grid-template-columns: 1.05fr 1fr;
+      gap: var(--space8);
+    }
+
+    .hero__stage {
+      height: min(76svh, 680px);
+    }
+  }
+</style>

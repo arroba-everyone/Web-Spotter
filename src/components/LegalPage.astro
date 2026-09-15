@@ -1,0 +1,156 @@
+---
+/**
+ * Presentación de un documento legal.
+ *
+ * La usan las dos rutas (española e inglesa) para que el aspecto y el aviso de
+ * borrador estén escritos una sola vez.
+ */
+import { render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { type Locale } from '../i18n';
+
+interface Props {
+  entry: CollectionEntry<'legal'>;
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const locale = (Astro.currentLocale ?? 'es') as Locale;
+const updatedLabel = entry.data.updated.toLocaleDateString(locale, {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+const reviewWarning =
+  locale === 'en'
+    ? 'Draft pending review by a legal professional. Do not publish as it stands.'
+    : 'Borrador pendiente de revisión por un profesional. No publicar tal cual.';
+---
+
+<!-- Un borrador sin revisar no debe salir en Google: se marca como no indexable. -->
+<BaseLayout
+  title={`${entry.data.title} · Spotter`}
+  description={entry.data.title}
+  noindex={entry.data.needsLegalReview}
+>
+  <article class="legal pageContainer">
+    <header class="legal__header">
+      <h1 class="legal__title">{entry.data.title}</h1>
+      <p class="legal__updated">{updatedLabel}</p>
+    </header>
+
+    {
+      entry.data.needsLegalReview && (
+        <p class="legal__warning" role="note">
+          {reviewWarning}
+        </p>
+      )
+    }
+
+    <div class="legal__content">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .legal {
+    /* Deja hueco a la barra flotante y limita la medida: un texto legal a todo
+       lo ancho de un monitor es ilegible. */
+    max-width: 72ch;
+    padding-block: calc(var(--space20) + var(--space8)) var(--space20);
+  }
+
+  .legal__title {
+    font-size: var(--fontSizeTitle);
+    font-weight: var(--fontWeightBold);
+    letter-spacing: -0.03em;
+  }
+
+  .legal__updated {
+    margin-top: var(--space2);
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextTertiary);
+  }
+
+  .legal__warning {
+    margin-top: var(--space6);
+    padding: var(--space4);
+    border: 1px solid var(--colorBrand);
+    border-radius: var(--radiusMedium);
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightSemibold);
+    color: var(--colorBrand);
+  }
+
+  /* El contenido viene de Markdown, así que se le da estilo por etiqueta: no hay
+     forma de ponerle clases a lo que escribe quien redacta el documento. */
+  .legal__content {
+    margin-top: var(--space8);
+    color: var(--colorTextSecondary);
+  }
+
+  .legal__content :global(h2) {
+    margin-top: var(--space12);
+    margin-bottom: var(--space4);
+    font-size: var(--fontSizeHeadline);
+    font-weight: var(--fontWeightSemibold);
+    color: var(--colorTextPrimary);
+  }
+
+  .legal__content :global(p),
+  .legal__content :global(ul) {
+    margin-bottom: var(--space4);
+  }
+
+  /* El reinicio del sitio quita las viñetas; aquí sí hacen falta, porque son
+     enumeraciones de verdad y no una lista de maquetación. */
+  .legal__content :global(ul) {
+    padding-left: var(--space6);
+    list-style: disc;
+  }
+
+  .legal__content :global(li) {
+    margin-bottom: var(--space2);
+  }
+
+  .legal__content :global(li)::marker {
+    color: var(--colorBrand);
+  }
+
+  .legal__content :global(strong) {
+    color: var(--colorTextPrimary);
+  }
+
+  .legal__content :global(a) {
+    color: var(--colorBrand);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .legal__content :global(code) {
+    font-size: 0.9em;
+    color: var(--colorTextPrimary);
+  }
+
+  .legal__content :global(table) {
+    width: 100%;
+    margin-bottom: var(--space6);
+    border-collapse: collapse;
+    font-size: var(--fontSizeCaption);
+  }
+
+  .legal__content :global(th),
+  .legal__content :global(td) {
+    padding: var(--space3);
+    border-bottom: 1px solid var(--colorSeparator);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .legal__content :global(th) {
+    color: var(--colorTextPrimary);
+  }
+</style>

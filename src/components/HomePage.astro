@@ -1,0 +1,58 @@
+---
+/**
+ * La portada completa, igual en los dos idiomas.
+ *
+ * Vive aquí y no copiada en «pages/index.astro» y «pages/en/index.astro» porque
+ * era lo mismo dos veces: añadir una sección obligaba a acordarse de hacerlo en
+ * ambos sitios. Las páginas solo la invocan.
+ *
+ * El orden sigue la estructura del brief (§8): qué es, cómo funciona, la
+ * diferencia (tu gimnasio exacto), la seguridad del Spot, la comunidad, la
+ * privacidad, quién está detrás, dudas y descarga.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroSection from './HeroSection.astro';
+import SportsMarquee from './SportsMarquee.astro';
+import HowItWorksStory from '../islands/HowItWorksStory.astro';
+import ManifestoSection from './ManifestoSection.astro';
+import GymSection from '../islands/GymSection.astro';
+import SpotSection from './SpotSection.astro';
+import CommunitySection from './CommunitySection.astro';
+import PrivacySection from './PrivacySection.astro';
+import TeamSection from './TeamSection.astro';
+import FaqSection from './FaqSection.astro';
+import DownloadSection from './DownloadSection.astro';
+import FloatingDownloadBar from '../islands/FloatingDownloadBar.astro';
+import { faqPage, mobileApplication, organization, website } from '../domain/structuredData';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+const context = {
+  siteUrl: (Astro.site ?? new URL('https://spotterapp.es')).href,
+  language: t.meta.htmlLang,
+  description: t.meta.description,
+};
+
+const structuredData = [
+  organization(context),
+  website(context),
+  mobileApplication(context),
+  // Las mismas preguntas que se ven en la página, nunca otras.
+  faqPage(t.faq.items),
+];
+---
+
+<BaseLayout structuredData={structuredData}>
+  <HeroSection />
+  <SportsMarquee />
+  <HowItWorksStory />
+  <ManifestoSection />
+  <GymSection />
+  <SpotSection />
+  <CommunitySection />
+  <PrivacySection />
+  <TeamSection />
+  <FaqSection />
+  <DownloadSection />
+  <FloatingDownloadBar />
+</BaseLayout>

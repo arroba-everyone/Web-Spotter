@@ -1,0 +1,21 @@
+# Dependencias
+node_modules/
+
+# Salida de compilación
+dist/
+.astro/
+
+# Entorno
+.env
+.env.production
+
+# Sistema
+.DS_Store
+
+# Configuración local de herramientas de cada desarrollador
+.claude/
+.vscode/
+
+# Documentación interna: brief de la app, hoja de ruta y material de marca.
+# Se queda en el ordenador de cada uno; el repositorio es público.
+docs/

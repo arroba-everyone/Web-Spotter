@@ -1,0 +1,29 @@
+---
+/**
+ * Documentos legales en inglés: «/en/privacidad» y «/en/terminos».
+ *
+ * Comparte presentación con la ruta española: lo único distinto es de qué
+ * carpeta de la colección salen los documentos.
+ */
+import { getCollection } from 'astro:content';
+import LegalPage from '../../components/LegalPage.astro';
+
+export async function getStaticPaths() {
+  // Solo se publican los documentos ya revisados. Un borrador con huecos por
+  // rellenar no puede estar en la web pública, ni aunque nadie lo enlace.
+  const documents = await getCollection(
+    'legal',
+    ({ id, data }) => id.startsWith('en/') && !data.needsLegalReview,
+  );
+
+  return documents.map((entry) => ({
+    // El identificador es «en/privacidad»; la dirección solo usa la última parte.
+    params: { documento: entry.id.split('/').pop() },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+---
+
+<LegalPage entry={entry} />

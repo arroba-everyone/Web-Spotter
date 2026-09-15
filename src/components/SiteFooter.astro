@@ -1,0 +1,95 @@
+---
+/**
+ * Pie del sitio: marca, enlaces legales, contacto y redes.
+ *
+ * La privacidad enlaza a la política ya publicada, que es la que exigen las
+ * tiendas (brief, §10). Los términos aparecen solos cuando dejan de ser borrador.
+ */
+import { getCollection } from 'astro:content';
+import BrandMark from './BrandMark.astro';
+import { links } from '../domain/links';
+import { useTranslations, type Locale } from '../i18n';
+import { localizedPath } from '../i18n/routes';
+
+const locale = (Astro.currentLocale ?? 'es') as Locale;
+const t = useTranslations(locale);
+const year = new Date().getFullYear();
+
+// Los términos solo se enlazan cuando están revisados: mientras son borrador ni
+// siquiera se generan (ver «pages/[documento].astro»), y el enlace daría un 404.
+const termsAreReviewed = (await getCollection('legal', ({ id, data }) => id === `${locale}/terminos` && !data.needsLegalReview)).length > 0;
+
+const footerLinks = [
+  { href: links.privacyPolicy, label: t.footer.privacy, external: true },
+  ...(termsAreReviewed ? [{ href: localizedPath(locale, '/terminos'), label: t.footer.terms, external: false }] : []),
+  { href: `mailto:${links.contactEmail}`, label: t.footer.contact, external: false },
+  { href: links.instagram, label: t.footer.instagram, external: true },
+];
+---
+
+<footer class="siteFooter">
+  <div class="pageContainer siteFooter__inner">
+    <div>
+      <BrandMark size={28} />
+      <p class="siteFooter__tagline">{t.footer.tagline}</p>
+    </div>
+
+    <nav class="siteFooter__links" aria-label={t.footer.contact}>
+      {
+        footerLinks.map((link) => (
+          <a href={link.href} {...(link.external ? { target: '_blank', rel: 'noopener' } : {})}>
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <p class="siteFooter__rights">© {year} Spotter. {t.footer.rights}</p>
+  </div>
+</footer>
+
+<style>
+  .siteFooter {
+    /* Deja sitio a la barra flotante de descarga, que va pegada abajo. */
+    padding-block: var(--space12) var(--space20);
+  }
+
+  .siteFooter__inner {
+    display: grid;
+    gap: var(--space8);
+  }
+
+  .siteFooter__tagline {
+    margin-top: var(--space3);
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+  }
+
+  .siteFooter__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space3) var(--space6);
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+  }
+
+  .siteFooter__links a:hover {
+    color: var(--colorTextPrimary);
+  }
+
+  .siteFooter__rights {
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextTertiary);
+  }
+
+  @media (min-width: 800px) {
+    .siteFooter__inner {
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .siteFooter__rights {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

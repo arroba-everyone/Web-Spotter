@@ -1,0 +1,114 @@
+---
+/**
+ * El cierre: el último sitio donde alguien decide descargarse la app.
+ *
+ * Ocupa la pantalla y lleva foto, porque una llamada a la acción sobre negro liso
+ * se lee como un pie de página y se pasa de largo. La foto es de banco (Pexels);
+ * ver «public/ambiente/LEEME.md».
+ */
+import StoreBadges from './StoreBadges.astro';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+---
+
+<section class="download" id="descargar" data-download>
+  <img
+    class="download__photo"
+    src="/ambiente/entrenar-acompanado.jpg"
+    alt=""
+    width="1600"
+    height="900"
+    loading="lazy"
+    decoding="async"
+  />
+
+  <div class="download__inner pageContainer">
+    <p class="eyebrow reveal">{t.download.eyebrow}</p>
+    <h2 class="download__title reveal">{t.download.title}</h2>
+    <p class="download__body reveal">{t.download.body}</p>
+    <div class="reveal">
+      <StoreBadges height={60} align="center" />
+    </div>
+  </div>
+</section>
+
+<style>
+  .download {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 100svh;
+    padding-block: var(--space20);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .download__photo {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Sin desaturar, la foto de banco se come la marca. */
+    filter: grayscale(0.9) contrast(1.1);
+  }
+
+  /* La foto se acerca poco a poco mientras se baja hasta aquí. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .download__photo {
+        animation: photoZooms linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 60%;
+      }
+    }
+  }
+
+  @keyframes photoZooms {
+    from {
+      scale: 1.25;
+    }
+    to {
+      scale: 1;
+    }
+  }
+
+  /* Velo oscuro: sin él el titular no se lee. Más denso arriba y abajo para fundirse con el negro. */
+  .download::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 100%) 0%,
+      rgb(0 0 0 / 62%) 40%,
+      rgb(0 0 0 / 74%) 75%,
+      rgb(0 0 0 / 100%) 100%
+    );
+  }
+
+  .download__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space6);
+    text-align: center;
+  }
+
+  .download__title {
+    font-size: var(--fontSizeMega);
+    font-weight: var(--fontWeightBlack);
+    line-height: var(--lineHeightTight);
+    letter-spacing: var(--letterSpacingDisplay);
+    text-wrap: balance;
+  }
+
+  .download__body {
+    max-width: 38ch;
+    font-size: var(--fontSizeLead);
+    color: rgb(255 255 255 / 75%);
+  }
+</style>

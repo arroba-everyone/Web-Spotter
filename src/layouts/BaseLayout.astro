@@ -1,0 +1,145 @@
+---
+/**
+ * Armazón común de todas las páginas: la cabecera del documento (todo lo que leen
+ * buscadores y redes sociales), la barra del sitio y el pie. Cada página solo
+ * aporta su contenido.
+ *
+ * Lo que va en la cabecera y para qué sirve:
+ * - «title» y «description»: lo que sale en el resultado de Google.
+ * - «canonical»: la dirección buena de la página, para que no cuente como
+ *   duplicada si se llega con otra (con «?utm=…», por ejemplo).
+ * - «alternate hreflang»: que la página existe en español y en inglés, y cuál
+ *   enseñar si el idioma del visitante no es ninguno de los dos («x-default»).
+ * - Open Graph y Twitter: el título, texto e imagen al compartir el enlace.
+ * - «apple-itunes-app»: en Safari de iPhone, el aviso para abrir o bajar la app.
+ * - Datos estructurados (JSON-LD): ver «domain/structuredData».
+ */
+import '../styles/base.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { links } from '../domain/links';
+import { useTranslations, locales, defaultLocale, type Locale } from '../i18n';
+import { localizedPath } from '../i18n/routes';
+
+interface Props {
+  /** Sobrescribe el título por defecto del idioma. */
+  title?: string;
+  description?: string;
+  /** Pide a los buscadores que no la indexen: borradores y páginas de error. */
+  noindex?: boolean;
+  /** Objetos JSON-LD de la página. Ver «domain/structuredData». */
+  structuredData?: readonly Record<string, unknown>[];
+}
+
+const locale = (Astro.currentLocale ?? defaultLocale) as Locale;
+const t = useTranslations(locale);
+
+const {
+  title = t.meta.title,
+  description = t.meta.description,
+  noindex = false,
+  structuredData = [],
+} = Astro.props;
+
+// «site» está en astro.config.mjs; sin él no habría direcciones absolutas.
+const site = Astro.site ?? new URL('https://spotterapp.es');
+// La canónica se construye con la misma función que los enlaces entre idiomas y
+// el mapa del sitio, para que las tres coincidan carácter a carácter.
+const canonicalUrl = new URL(localizedPath(locale, Astro.url.pathname), site).href;
+const socialImage = new URL(`og/spotter-${locale}.jpg`, site).href;
+
+// Una etiqueta por idioma, más «x-default» apuntando al español, que es el
+// idioma principal. Google pide que cada versión se liste a sí misma y a las demás.
+const alternates = [
+  ...locales.map((candidate) => ({
+    hreflang: candidate,
+    href: new URL(localizedPath(candidate, Astro.url.pathname), site).href,
+  })),
+  { hreflang: 'x-default', href: new URL(localizedPath(defaultLocale, Astro.url.pathname), site).href },
+];
+
+const otherOgLocales = locales
+  .filter((candidate) => candidate !== locale)
+  .map((candidate) => useTranslations(candidate).meta.ogLocale);
+---
+
+<!doctype html>
+<html lang={t.meta.htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+
+    <!-- Las páginas que no se indexan no necesitan canónica ni versiones por idioma. -->
+    {!noindex && <link rel="canonical" href={canonicalUrl} />}
+    {!noindex && alternates.map((alternate) => <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />)}
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <!-- La web es solo oscura: la barra del navegador en el móvil, también. -->
+    <meta name="theme-color" content="#000000" />
+
+    <meta name="apple-itunes-app" content={`app-id=${links.appStoreId}`} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Spotter" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={t.meta.ogImageAlt} />
+    <meta property="og:locale" content={t.meta.ogLocale} />
+    {otherOgLocales.map((ogLocale) => <meta property="og:locale:alternate" content={ogLocale} />)}
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+
+    {
+      structuredData.map((data) => (
+        <script is:inline type="application/ld+json" set:html={JSON.stringify(data)} />
+      ))
+    }
+  </head>
+
+  <body>
+    <a class="skipLink" href="#main">{t.nav.skipToContent}</a>
+    <SiteHeader />
+    <main id="main">
+      <slot />
+    </main>
+    <SiteFooter />
+
+    <script>
+      // Inclinación de teléfonos y tarjetas al pasar el puntero. Ver el propio fichero.
+      import '../scripts/pointerTilt';
+    </script>
+
+    <style>
+      /* Enlace de salto: invisible hasta que se llega a él con el tabulador. */
+      .skipLink {
+        position: fixed;
+        top: var(--space2);
+        left: var(--space2);
+        z-index: 100;
+        padding: var(--space2) var(--space4);
+        border-radius: var(--radiusSmall);
+        background-color: var(--colorBrand);
+        color: #ffffff;
+        font-weight: var(--fontWeightSemibold);
+        transform: translateY(-200%);
+      }
+
+      .skipLink:focus-visible {
+        transform: translateY(0);
+      }
+    </style>
+  </body>
+</html>

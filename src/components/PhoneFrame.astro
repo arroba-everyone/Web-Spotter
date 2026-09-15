@@ -1,0 +1,132 @@
+---
+/**
+ * Un iPhone dibujado alrededor de una captura de la app.
+ *
+ * Se dibuja en CSS y no con las plantillas de Apple Design Resources porque esas
+ * plantillas se descargan aceptando su licencia, y eso le toca hacerlo al
+ * equipo. Es sobrio a propósito: canto de titanio, botones laterales y esquinas
+ * de pantalla proporcionales. No añade nada que la captura no tenga (la isla
+ * dinámica, la hora y la batería ya vienen en la propia captura).
+ *
+ * La captura pasa por Astro, que la convierte en WebP y genera varios tamaños:
+ * un móvil descarga la de 360 px y no el original de 1206.
+ */
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+
+interface Props {
+  image: ImageMetadata;
+  alt: string;
+  /** Ancho del teléfono en píxeles CSS. Admite cualquier valor de CSS, como «min(80vw, 320px)». */
+  width?: string;
+  /** Lo que ocupa en pantalla, para que el navegador elija el tamaño de imagen. */
+  sizes?: string;
+  /** Solo la captura que se ve al entrar debe cargarse sin esperar. */
+  priority?: boolean;
+  /** Se inclina siguiendo al puntero. */
+  tilt?: boolean;
+  class?: string;
+}
+
+const {
+  image,
+  alt,
+  width = '300px',
+  sizes = '(min-width: 900px) 320px, 70vw',
+  priority = false,
+  tilt = true,
+  class: className,
+} = Astro.props;
+---
+
+<div
+  class:list={['phoneFrame', className]}
+  style={`--phoneWidth: ${width}`}
+  data-tilt={tilt ? '' : undefined}
+>
+  <div class="phoneFrame__body">
+    <Image
+      class="phoneFrame__screen"
+      src={image}
+      alt={alt}
+      widths={[360, 540, 720]}
+      sizes={sizes}
+      format="webp"
+      quality="high"
+      loading={priority ? 'eager' : 'lazy'}
+      priority={priority}
+    />
+    <span class="phoneFrame__glare" aria-hidden="true"></span>
+  </div>
+</div>
+
+<style>
+  .phoneFrame {
+    /* Todo se mide contra el ancho: el teléfono escala entero sin deformarse. */
+    width: var(--phoneWidth);
+    max-width: 100%;
+    /* La inclinación la escribe «pointerTilt» en estas dos variables. */
+    transform: perspective(1200px) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg));
+    transition: transform var(--durationSlow) var(--easingStandard);
+    transform-style: preserve-3d;
+  }
+
+  .phoneFrame__body {
+    position: relative;
+    /* El canto: un degradado de titanio en lugar de un borde plano. */
+    padding: calc(var(--phoneWidth) * 0.028);
+    border-radius: calc(var(--phoneWidth) * 0.17);
+    background: linear-gradient(
+      145deg,
+      #4a4a4f 0%,
+      #1b1b1d 38%,
+      #0c0c0d 62%,
+      #3a3a3e 100%
+    );
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 12%),
+      var(--shadowPhone);
+  }
+
+  /* Botones laterales: dos a la izquierda, uno a la derecha. */
+  .phoneFrame__body::before,
+  .phoneFrame__body::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    border-radius: 2px;
+    background-color: #2a2a2d;
+  }
+
+  .phoneFrame__body::before {
+    left: -3px;
+    top: 20%;
+    height: 12%;
+    box-shadow: 0 calc(var(--phoneWidth) * 0.2) 0 #2a2a2d;
+  }
+
+  .phoneFrame__body::after {
+    right: -3px;
+    top: 26%;
+    height: 16%;
+  }
+
+  .phoneFrame__screen {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1206 / 2622;
+    /* Algo menor que el canto: si fueran iguales, el bisel engordaría en las esquinas. */
+    border-radius: calc(var(--phoneWidth) * 0.145);
+    background-color: var(--colorBackground);
+  }
+
+  /* Un reflejo diagonal muy tenue: es lo que separa una pantalla de una imagen pegada. */
+  .phoneFrame__glare {
+    position: absolute;
+    inset: calc(var(--phoneWidth) * 0.028);
+    border-radius: calc(var(--phoneWidth) * 0.145);
+    background: linear-gradient(125deg, rgb(255 255 255 / 9%) 0%, transparent 30%);
+    pointer-events: none;
+  }
+</style>

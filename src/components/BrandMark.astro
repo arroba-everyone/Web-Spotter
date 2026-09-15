@@ -1,0 +1,40 @@
+---
+/**
+ * El logotipo de Spotter.
+ *
+ * La web es solo oscura, así que siempre se usa el juego para fondo oscuro. El de
+ * fondo claro sigue en «public/brand/» por si se necesita en otro soporte.
+ *
+ * Los ficheros están recortados al contenido: ver «public/brand/LEEME.md».
+ */
+interface Props {
+  /** Altura del logotipo en píxeles. */
+  size?: number;
+  /** Con la palabra «spotter», o solo el pin (favicon, avatares, espacios pequeños). */
+  variant?: 'full' | 'symbol';
+  /** Vacío cuando el logotipo va dentro de un enlace o una barra que ya lo nombra. */
+  alt?: string;
+}
+
+const { size = 28, variant = 'full', alt = 'Spotter' } = Astro.props;
+
+// Proporciones de los ficheros recortados, para reservar el hueco exacto.
+const aspectRatio = variant === 'full' ? 454 / 138 : 1;
+const source = variant === 'full' ? '/brand/logo-completo-fondo-oscuro.svg' : '/brand/simbolo.svg';
+---
+
+<img
+  class="brandMark"
+  src={source}
+  alt={alt}
+  width={Math.round(size * aspectRatio)}
+  height={size}
+/>
+
+<style>
+  .brandMark {
+    display: block;
+    width: auto;
+    flex-shrink: 0;
+  }
+</style>

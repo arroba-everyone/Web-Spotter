@@ -1,0 +1,287 @@
+---
+/**
+ * Demostración de «Dar un Spot» que se puede pulsar.
+ *
+ * Explicar la regla («quien da el Spot no puede escribir hasta que le
+ * contesten») con un párrafo se olvida; tocar el botón y ver que no puedes
+ * escribir se entiende. Por eso es una demo y no un texto.
+ *
+ * Tres estados, guardados en «data-state» y dibujados solo con CSS:
+ * - «idle»: el perfil con el botón rojo.
+ * - «sent»: Spot enviado; aparece la regla.
+ * - «reply»: sube la hoja «Lucía te ha dado un Spot», igual que en la app.
+ *
+ * Lucía es un perfil de demostración con una foto de banco: no es una persona de
+ * la comunidad ni un testimonio.
+ */
+import SportPill from '../components/SportPill.astro';
+import { dailySeries } from '../domain/dailySeries';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+const runner = dailySeries.find((member) => member.sportId === 'running');
+---
+
+<div class="spotDemo" data-spot-demo data-state="idle">
+  <p class="spotDemo__tag">{t.spot.demo.tryIt}</p>
+
+  <div class="spotDemo__profile">
+    {
+      runner?.photo && (
+        <img
+          class="spotDemo__photo"
+          src={runner.photo}
+          alt={t.spot.demo.photoAlt}
+          width="700"
+          height="700"
+          loading="lazy"
+          style={`object-position: ${runner.focus}`}
+        />
+      )
+    }
+    <p class="spotDemo__name">{t.spot.demo.name}</p>
+    <p class="spotDemo__meta">{t.spot.demo.age} · {t.spot.demo.detail}</p>
+    <SportPill sportId="running" />
+  </div>
+
+  <div class="spotDemo__actions">
+    <button class="spotDemo__button" type="button" data-spot-action>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 12h12M9 8v8M15 8v8M3.5 10v4M20.5 10v4" />
+      </svg>
+      <span class="spotDemo__label spotDemo__label--idle">{t.spot.demo.action}</span>
+      <span class="spotDemo__label spotDemo__label--sent">✓ {t.spot.demo.sent}</span>
+    </button>
+    <p class="spotDemo__waiting" aria-live="polite">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6Z" />
+      </svg>
+      <span data-spot-waiting-text>{t.spot.demo.waiting}</span>
+    </p>
+  </div>
+
+  <div class="spotDemo__sheet" role="dialog" aria-label={t.spot.demo.replyTitle}>
+    <span class="spotDemo__grabber" aria-hidden="true"></span>
+    <p class="spotDemo__sheetTitle">{t.spot.demo.replyTitle}</p>
+    <p class="spotDemo__sheetBody">{t.spot.demo.replyBody}</p>
+    <a class="spotDemo__chat" href="#descargar">{t.spot.demo.replyAction}</a>
+    <button class="spotDemo__reset" type="button" data-spot-reset>{t.spot.demo.reset}</button>
+  </div>
+</div>
+
+<style>
+  .spotDemo {
+    position: relative;
+    display: grid;
+    gap: var(--space6);
+    width: min(100%, 380px);
+    padding: var(--space8) var(--space6) var(--space6);
+    overflow: hidden;
+    border-radius: var(--radiusSheet);
+    background-color: var(--colorSurface);
+    box-shadow: var(--shadowPhone);
+  }
+
+  .spotDemo__tag {
+    position: absolute;
+    top: var(--space4);
+    right: var(--space4);
+    padding: var(--space1) var(--space3);
+    border-radius: var(--radiusPill);
+    background-color: var(--colorSurfaceRaised);
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+  }
+
+  .spotDemo__profile {
+    display: grid;
+    justify-items: center;
+    gap: var(--space2);
+    text-align: center;
+  }
+
+  /* Foto sin aro, con el halo del color del deporte (brief, §5). */
+  .spotDemo__photo {
+    width: 132px;
+    height: 132px;
+    margin-bottom: var(--space2);
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 14px 50px color-mix(in srgb, var(--colorSportRunning) 55%, transparent);
+  }
+
+  .spotDemo__name {
+    font-size: var(--fontSizeTitle);
+    font-weight: var(--fontWeightBlack);
+    line-height: 1;
+    letter-spacing: var(--letterSpacingTitle);
+  }
+
+  .spotDemo__meta {
+    margin-bottom: var(--space2);
+    color: var(--colorTextSecondary);
+  }
+
+  .spotDemo__actions {
+    display: grid;
+    gap: var(--space3);
+  }
+
+  .spotDemo__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space2);
+    height: var(--buttonHeight);
+    border-radius: var(--radiusPill);
+    background-color: var(--colorBrand);
+    color: #ffffff;
+    font-weight: var(--fontWeightSemibold);
+    transition:
+      background-color var(--durationNormal) var(--easingStandard),
+      scale var(--durationFast) var(--easingStandard);
+  }
+
+  .spotDemo__button:active {
+    scale: 0.96;
+  }
+
+  .spotDemo__button svg,
+  .spotDemo__waiting svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .spotDemo__label--sent {
+    display: none;
+  }
+
+  /* Enviado: el botón deja de ser una llamada a la acción y pasa a ser un estado. */
+  .spotDemo[data-state='sent'] .spotDemo__button,
+  .spotDemo[data-state='reply'] .spotDemo__button {
+    background-color: var(--colorSurfaceRaised);
+    pointer-events: none;
+  }
+
+  .spotDemo[data-state='sent'] .spotDemo__button svg,
+  .spotDemo[data-state='reply'] .spotDemo__button svg,
+  .spotDemo[data-state='sent'] .spotDemo__label--idle,
+  .spotDemo[data-state='reply'] .spotDemo__label--idle {
+    display: none;
+  }
+
+  .spotDemo[data-state='sent'] .spotDemo__label--sent,
+  .spotDemo[data-state='reply'] .spotDemo__label--sent {
+    display: inline;
+  }
+
+  .spotDemo__waiting {
+    display: flex;
+    align-items: start;
+    gap: var(--space2);
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+    opacity: 0;
+    translate: 0 8px;
+    transition:
+      opacity var(--durationNormal) var(--easingStandard),
+      translate var(--durationNormal) var(--easingStandard);
+  }
+
+  .spotDemo__waiting svg {
+    flex-shrink: 0;
+    color: var(--colorBrand);
+  }
+
+  .spotDemo[data-state='sent'] .spotDemo__waiting,
+  .spotDemo[data-state='reply'] .spotDemo__waiting {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  /* La hoja que sube desde abajo, con esquinas muy redondeadas (brief, §7). */
+  .spotDemo__sheet {
+    position: absolute;
+    inset: auto 0 0;
+    display: grid;
+    justify-items: center;
+    gap: var(--space2);
+    padding: var(--space3) var(--space6) var(--space6);
+    border-radius: var(--radiusSheet) var(--radiusSheet) 0 0;
+    background-color: var(--colorSurfaceRaised);
+    text-align: center;
+    translate: 0 105%;
+    transition: translate var(--durationSlow) var(--easingSpring);
+  }
+
+  .spotDemo[data-state='reply'] .spotDemo__sheet {
+    translate: 0 0;
+  }
+
+  .spotDemo__grabber {
+    width: 36px;
+    height: 5px;
+    margin-bottom: var(--space3);
+    border-radius: var(--radiusPill);
+    background-color: var(--colorTextTertiary);
+  }
+
+  .spotDemo__sheetTitle {
+    font-size: var(--fontSizeTitle3);
+    font-weight: var(--fontWeightBold);
+  }
+
+  .spotDemo__sheetBody {
+    color: var(--colorTextSecondary);
+  }
+
+  .spotDemo__chat {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: var(--buttonHeight);
+    margin-top: var(--space3);
+    border-radius: var(--radiusPill);
+    background-color: var(--colorBrand);
+    color: #ffffff;
+    font-weight: var(--fontWeightSemibold);
+  }
+
+  .spotDemo__reset {
+    padding: var(--space2);
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+  }
+</style>
+
+<script>
+  /** Lo que tarda «Lucía» en contestar: lo justo para leer la regla del candado. */
+  const REPLY_DELAY_MS = 2600;
+
+  function startSpotDemo(demo: HTMLElement): void {
+    const action = demo.querySelector<HTMLButtonElement>('[data-spot-action]');
+    const reset = demo.querySelector<HTMLButtonElement>('[data-spot-reset]');
+    let replyTimer = 0;
+
+    action?.addEventListener('click', () => {
+      if (demo.dataset.state !== 'idle') return;
+      demo.dataset.state = 'sent';
+      replyTimer = window.setTimeout(() => {
+        demo.dataset.state = 'reply';
+      }, REPLY_DELAY_MS);
+    });
+
+    reset?.addEventListener('click', () => {
+      window.clearTimeout(replyTimer);
+      demo.dataset.state = 'idle';
+      action?.focus();
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-spot-demo]').forEach(startSpotDemo);
+</script>

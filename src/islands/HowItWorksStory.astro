@@ -1,0 +1,280 @@
+---
+/**
+ * Cómo funciona, contado con el scroll.
+ *
+ * En escritorio, el iPhone se queda fijo a la derecha y su pantalla cambia según
+ * el paso que se está leyendo a la izquierda. En el paso tres entra un segundo
+ * teléfono con el chat, porque «da un Spot y quedad» son dos pantallas.
+ *
+ * En móvil no hay sitio para un teléfono fijo al lado del texto, así que cada
+ * paso lleva su captura debajo. Las dos versiones están en el HTML y el CSS
+ * enseña una u otra; las imágenes de la oculta no se descargan porque son
+ * «lazy» y el navegador no carga imágenes perezosas que no se muestran.
+ *
+ * Sin JavaScript todo se lee igual: se ve la primera pantalla y los tres pasos.
+ * El guion solo decide cuál está activo.
+ */
+import PhoneFrame from '../components/PhoneFrame.astro';
+import SectionHeading from '../components/SectionHeading.astro';
+import { captures, type CaptureId } from '../domain/captures';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+
+/** Qué pantalla acompaña a cada paso, en el mismo orden que los textos. */
+const stepCaptures: CaptureId[] = ['placeSearch', 'discover', 'otherProfile'];
+const steps = t.howItWorks.steps.map((step, index) => ({
+  ...step,
+  number: String(index + 1).padStart(2, '0'),
+  capture: captures[stepCaptures[index]!],
+}));
+const lastStep = steps.length - 1;
+const secondCaptureAlt = t.howItWorks.steps[lastStep]?.secondCaptureAlt ?? '';
+---
+
+<section class="story" id="como-funciona" data-story data-active="0">
+  <div class="pageContainer">
+    <SectionHeading eyebrow={t.howItWorks.eyebrow} title={t.howItWorks.title} />
+
+    <div class="story__layout">
+      <ol class="story__steps">
+        {
+          steps.map((step, index) => (
+            <li class="story__step" data-story-step={index}>
+              <span class="story__number">{step.number}</span>
+              <h3 class="story__title">{step.title}</h3>
+              <p class="story__body">{step.body}</p>
+
+              <div class="story__inlinePhone">
+                <PhoneFrame image={step.capture} alt={step.captureAlt} width="min(72vw, 290px)" sizes="72vw" tilt={false} />
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+
+      <div class="story__stickyColumn" aria-hidden="true">
+        <div class="story__sticky">
+          <div class="story__screens">
+            {
+              steps.map((step, index) => (
+                <div class="story__screen" data-screen={index}>
+                  <PhoneFrame image={step.capture} alt="" width="300px" sizes="300px" />
+                </div>
+              ))
+            }
+          </div>
+
+          <div class="story__chat">
+            <PhoneFrame image={captures.chat} alt={secondCaptureAlt} width="230px" sizes="230px" tilt={false} />
+          </div>
+
+          <div class="story__progress">
+            {steps.map((_, index) => <span class="story__dot" data-dot={index} />)}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .story {
+    padding-block: var(--sectionPadding);
+  }
+
+  .story__layout {
+    display: grid;
+    margin-top: var(--space12);
+  }
+
+  .story__steps {
+    display: grid;
+    gap: var(--space16);
+  }
+
+  .story__number {
+    display: block;
+    font-size: var(--fontSizeTitle);
+    font-weight: var(--fontWeightBlack);
+    line-height: 1;
+    letter-spacing: var(--letterSpacingTitle);
+    color: var(--colorBrand);
+  }
+
+  .story__title {
+    margin-top: var(--space4);
+    max-width: 16ch;
+    font-size: var(--fontSizeTitle3);
+    font-weight: var(--fontWeightBold);
+    line-height: var(--lineHeightSnug);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .story__body {
+    max-width: 38ch;
+    margin-top: var(--space3);
+    color: var(--colorTextSecondary);
+    text-wrap: pretty;
+  }
+
+  .story__inlinePhone {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space8);
+  }
+
+  .story__stickyColumn {
+    display: none;
+  }
+
+  @media (min-width: 900px) {
+    .story__layout {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space8);
+    }
+
+    .story__inlinePhone {
+      display: none;
+    }
+
+    /* Cada paso ocupa casi una pantalla: es lo que da tiempo a leerlo mientras
+       el teléfono de al lado se queda quieto. */
+    .story__steps {
+      gap: 0;
+    }
+
+    .story__step {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 78svh;
+    }
+
+    /* Con el guion activo, los pasos que no se están leyendo se apagan. */
+    .story[data-enhanced] .story__step {
+      opacity: 0.28;
+      transition: opacity var(--durationSlow) var(--easingStandard);
+    }
+
+    .story[data-enhanced][data-active='0'] [data-story-step='0'],
+    .story[data-enhanced][data-active='1'] [data-story-step='1'],
+    .story[data-enhanced][data-active='2'] [data-story-step='2'] {
+      opacity: 1;
+    }
+
+    .story__stickyColumn {
+      display: block;
+    }
+
+    .story__sticky {
+      position: sticky;
+      top: calc(50svh - 320px);
+      display: grid;
+      place-items: center;
+      height: 640px;
+    }
+
+    .story__screens {
+      display: grid;
+    }
+
+    /* Las tres pantallas ocupan la misma celda, una encima de otra. */
+    .story__screen {
+      grid-area: 1 / 1;
+      opacity: 0;
+      scale: 0.94;
+      translate: 0 24px;
+      transition:
+        opacity var(--durationSlow) var(--easingStandard),
+        scale var(--durationSlow) var(--easingStandard),
+        translate var(--durationSlow) var(--easingStandard);
+    }
+
+    .story[data-active='0'] [data-screen='0'],
+    .story[data-active='1'] [data-screen='1'],
+    .story[data-active='2'] [data-screen='2'] {
+      opacity: 1;
+      scale: 1;
+      translate: 0 0;
+    }
+
+    /* El chat entra por la derecha solo en el último paso. */
+    .story__chat {
+      position: absolute;
+      right: -2%;
+      bottom: 4%;
+      opacity: 0;
+      translate: 60px 40px;
+      rotate: 6deg;
+      transition:
+        opacity var(--durationSlow) var(--easingStandard),
+        translate var(--durationSlow) var(--easingSpring),
+        rotate var(--durationSlow) var(--easingSpring);
+    }
+
+    .story[data-active='2'] .story__chat {
+      opacity: 1;
+      translate: 0 0;
+      rotate: 4deg;
+    }
+
+    .story__progress {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      display: grid;
+      gap: var(--space2);
+      translate: 0 -50%;
+    }
+
+    .story__dot {
+      width: 6px;
+      height: 24px;
+      border-radius: var(--radiusPill);
+      background-color: var(--colorSeparator);
+      transition:
+        background-color var(--durationNormal) var(--easingStandard),
+        height var(--durationNormal) var(--easingStandard);
+    }
+
+    .story[data-active='0'] [data-dot='0'],
+    .story[data-active='1'] [data-dot='1'],
+    .story[data-active='2'] [data-dot='2'] {
+      height: 48px;
+      background-color: var(--colorBrand);
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Marca como activo el paso que cruza la franja central de la pantalla.
+   *
+   * Se usa una franja estrecha en el medio (el 10 % central) y no «el paso más
+   * visible», porque con pasos altos dos de ellos pueden estar a medias a la vez
+   * y el teléfono parpadearía entre ambos.
+   */
+  function startStory(section: HTMLElement): void {
+    const steps = section.querySelectorAll<HTMLElement>('[data-story-step]');
+    if (steps.length === 0) return;
+
+    section.dataset.enhanced = '';
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const index = (entry.target as HTMLElement).dataset.storyStep;
+          if (index !== undefined) section.dataset.active = index;
+        }
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+
+    steps.forEach((step) => observer.observe(step));
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-story]').forEach(startStory);
+</script>

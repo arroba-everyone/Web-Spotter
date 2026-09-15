@@ -1,0 +1,25 @@
+---
+/**
+ * Página de descarga, en «/descarga».
+ *
+ * Existe porque esa dirección ya está publicada: es el enlace de la bio de
+ * Instagram y una de las páginas que Google tiene indexadas de la web anterior.
+ * Si desapareciera, ese enlace daría error. Enseña lo mismo que el cierre de la
+ * portada, con las dos tiendas.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DownloadSection from './DownloadSection.astro';
+import { mobileApplication } from '../domain/structuredData';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+const siteUrl = (Astro.site ?? new URL('https://spotterapp.es')).href;
+---
+
+<BaseLayout
+  title={t.downloadPage.title}
+  description={t.downloadPage.description}
+  structuredData={[mobileApplication({ siteUrl, language: t.meta.htmlLang, description: t.downloadPage.description })]}
+>
+  <DownloadSection />
+</BaseLayout>

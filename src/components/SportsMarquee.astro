@@ -1,0 +1,117 @@
+---
+/**
+ * Dos cintas en movimiento: los deportes en una dirección y el lema en la otra.
+ *
+ * Es el respiro entre la portada y el resto: no hay nada que leer con calma,
+ * solo ritmo. El lema «Spot · Body · Mind · Repeat» es el que ya usa la
+ * comunidad en Instagram.
+ *
+ * Funciona solo con CSS. Cada cinta tiene su contenido dos veces seguidas y se
+ * desplaza exactamente la mitad de su ancho: cuando termina, la segunda copia
+ * está justo donde empezó la primera y el salto no se ve. La copia lleva
+ * «aria-hidden» para que un lector de pantalla no lo lea dos veces.
+ */
+import SportPill from './SportPill.astro';
+import type { SportId } from '../domain/sports';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+const sportIds: SportId[] = ['gym', 'running', 'cycling', 'hyrox', 'calisthenics'];
+const copies = [false, true];
+---
+
+<section class="marquee" aria-label={t.marquee.label}>
+  <div class="marquee__track marquee__track--pills">
+    {
+      copies.map((isCopy) => (
+        <ul class="marquee__group" aria-hidden={isCopy ? 'true' : undefined}>
+          {[...sportIds, ...sportIds].map((sportId) => (
+            <li>
+              <SportPill sportId={sportId} size="large" />
+            </li>
+          ))}
+        </ul>
+      ))
+    }
+  </div>
+
+  <div class="marquee__track marquee__track--motto">
+    {
+      copies.map((isCopy) => (
+        <p class="marquee__group" aria-hidden={isCopy ? 'true' : undefined}>
+          {[...t.marquee.motto, ...t.marquee.motto].map((word) => (
+            <span class="marquee__word">{word}</span>
+          ))}
+        </p>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .marquee {
+    display: grid;
+    gap: var(--space6);
+    padding-block: var(--space12);
+    overflow: hidden;
+    /* Los bordes se funden con el negro en vez de cortar las píldoras en seco. */
+    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  }
+
+  .marquee__track {
+    display: flex;
+    width: max-content;
+  }
+
+  .marquee__group {
+    display: flex;
+    align-items: center;
+    gap: var(--space4);
+    padding-right: var(--space4);
+  }
+
+  .marquee__track--motto .marquee__group {
+    gap: var(--space8);
+    padding-right: var(--space8);
+  }
+
+  .marquee__word {
+    font-size: var(--fontSizeMega);
+    font-weight: var(--fontWeightBlack);
+    line-height: 1;
+    letter-spacing: var(--letterSpacingDisplay);
+    /* Solo el contorno: a ese tamaño, relleno taparía la página entera. */
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--colorTextTertiary);
+    text-transform: uppercase;
+  }
+
+  /* Cada dos palabras, una en rojo lleno: rompe la monotonía del contorno. */
+  .marquee__word:nth-child(4n + 1) {
+    color: var(--colorBrand);
+    -webkit-text-stroke: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .marquee__track--pills {
+      animation: marqueeLeft 38s linear infinite;
+    }
+
+    /* No se paran al pasar el ratón: la cinta es ritmo, no algo que haya que leer. */
+    .marquee__track--motto {
+      animation: marqueeRight 46s linear infinite;
+    }
+  }
+
+  @keyframes marqueeLeft {
+    to {
+      translate: -50% 0;
+    }
+  }
+
+  @keyframes marqueeRight {
+    from {
+      translate: -50% 0;
+    }
+  }
+</style>

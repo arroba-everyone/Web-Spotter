@@ -1,0 +1,131 @@
+---
+/**
+ * Preguntas frecuentes.
+ *
+ * Solo lleva respuestas que están en el brief. Las que tiene que decidir el
+ * equipo (precio, ciudades concretas, fechas) no aparecen hasta que las haya:
+ * inventarlas en la web es prometer algo (brief, §8, punto 7).
+ *
+ * Usa «details» y «summary», que ya se abren y cierran solos, con teclado y
+ * lector de pantalla, sin una línea de JavaScript.
+ */
+import SectionHeading from './SectionHeading.astro';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+---
+
+<section class="faq" id="preguntas">
+  <div class="faq__inner pageContainer">
+    <SectionHeading eyebrow={t.faq.eyebrow} title={t.faq.title} />
+
+    <div class="faq__list">
+      {
+        t.faq.items.map((item) => (
+          <details class="faq__item reveal">
+            <summary class="faq__question">
+              {item.question}
+              <span class="faq__toggle" aria-hidden="true" />
+            </summary>
+            <p class="faq__answer">{item.answer}</p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq {
+    padding-block: var(--sectionPadding);
+  }
+
+  .faq__inner {
+    display: grid;
+    gap: var(--space12);
+  }
+
+  .faq__list {
+    display: grid;
+    gap: var(--space2);
+  }
+
+  .faq__item {
+    border-radius: var(--radiusLarge);
+    background-color: var(--colorSurface);
+    /* Deja animar la altura de «details» al abrir, en los navegadores que lo permiten. */
+    interpolate-size: allow-keywords;
+  }
+
+  .faq__item::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size var(--durationNormal) var(--easingStandard),
+      content-visibility var(--durationNormal) allow-discrete;
+  }
+
+  .faq__item[open]::details-content {
+    block-size: auto;
+  }
+
+  .faq__question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space4);
+    padding: var(--space6);
+    font-size: var(--fontSizeHeadline);
+    font-weight: var(--fontWeightSemibold);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .faq__question::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Un «+» que gira hasta ser un «×» al abrir. */
+  .faq__toggle {
+    position: relative;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: var(--colorSurfaceRaised);
+    transition: rotate var(--durationNormal) var(--easingSpring);
+  }
+
+  .faq__toggle::before,
+  .faq__toggle::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 12px;
+    height: 2px;
+    border-radius: 1px;
+    background-color: var(--colorTextPrimary);
+    translate: -50% -50%;
+  }
+
+  .faq__toggle::after {
+    rotate: 90deg;
+  }
+
+  .faq__item[open] .faq__toggle {
+    rotate: 45deg;
+  }
+
+  .faq__answer {
+    max-width: 60ch;
+    padding: 0 var(--space6) var(--space6);
+    color: var(--colorTextSecondary);
+  }
+
+  @media (min-width: 900px) {
+    .faq__inner {
+      grid-template-columns: 1fr 1.4fr;
+      align-items: start;
+    }
+  }
+</style>

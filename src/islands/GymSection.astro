@@ -1,0 +1,256 @@
+---
+/**
+ * «Tu gimnasio, exacto»: la diferencia de Spotter (brief, §8).
+ *
+ * Dos detalles vivos:
+ * - En el titular, la palabra del sitio va cambiando: gimnasio, parque, pista…
+ *   Deja claro sin explicarlo que no es solo para gente de gimnasio.
+ * - El «+10.000» cuenta desde cero la primera vez que se ve.
+ *
+ * Sin JavaScript, el titular dice «Tu gimnasio, exacto.» y el número ya está puesto.
+ */
+import PhoneFrame from '../components/PhoneFrame.astro';
+import { captures } from '../domain/captures';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+const locale = t.meta.htmlLang;
+const formattedStat = new Intl.NumberFormat(locale).format(t.gym.statValue);
+const firstPlace = t.gym.places[0] ?? '';
+---
+
+<section class="gym" id="tu-gimnasio" data-gym>
+  <div class="gym__inner pageContainer">
+    <div class="gym__text">
+      <p class="eyebrow reveal">{t.gym.eyebrow}</p>
+
+      <h2 class="gym__title reveal">
+        <span class="visuallyHidden">{t.gym.titleStart} {firstPlace}, {t.gym.titleEnd}</span>
+        <span aria-hidden="true">
+          {t.gym.titleStart}{' '}
+          <span class="gym__place" data-gym-places={JSON.stringify(t.gym.places)}>{firstPlace}</span>,
+          <br />
+          {t.gym.titleEnd}
+        </span>
+      </h2>
+
+      <p class="gym__body reveal">{t.gym.body}</p>
+
+      <div class="gym__facts">
+        <div class="gym__fact reveal">
+          <p class="gym__stat">
+            <span>{t.gym.statPrefix}</span><span data-count-to={t.gym.statValue} data-locale={locale}>{formattedStat}</span>
+          </p>
+          <p class="gym__statLabel">{t.gym.statLabel}</p>
+        </div>
+
+        <div class="gym__fact reveal">
+          <p class="gym__factTitle">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11ZM12 7v6M9 10h6" />
+            </svg>
+            {t.gym.addTitle}
+          </p>
+          <p class="gym__statLabel">{t.gym.addBody}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="gym__phone reveal">
+      <PhoneFrame image={captures.placeSearch} alt={t.gym.captureAlt} width="min(74vw, 320px)" />
+    </div>
+  </div>
+</section>
+
+<style>
+  .gym {
+    position: relative;
+    padding-block: var(--sectionPadding);
+    overflow: hidden;
+  }
+
+  /* Halo tras el teléfono: da algo detrás al cristal de su buscador y lo despega del negro. */
+  .gym::before {
+    content: '';
+    position: absolute;
+    right: -10%;
+    top: 20%;
+    width: min(80vw, 700px);
+    aspect-ratio: 1;
+    background: radial-gradient(circle, var(--colorSportCycling) 0%, transparent 60%);
+    opacity: 0.12;
+    pointer-events: none;
+  }
+
+  .gym__inner {
+    position: relative;
+    display: grid;
+    gap: var(--space12);
+    align-items: center;
+  }
+
+  .gym__title {
+    margin-top: var(--space4);
+    font-size: var(--fontSizeTitle);
+    font-weight: var(--fontWeightBlack);
+    line-height: var(--lineHeightTight);
+    letter-spacing: var(--letterSpacingTitle);
+  }
+
+  .gym__place {
+    display: inline-block;
+    color: var(--colorBrand);
+  }
+
+  /* Al cambiar de palabra, la vieja cae hacia abajo y la nueva llega desde arriba. */
+  .gym__place.is-leaving {
+    animation: placeLeaves var(--durationNormal) var(--easingStandard) both;
+  }
+
+  .gym__place.is-entering {
+    animation: placeEnters var(--durationSlow) var(--easingSpring) both;
+  }
+
+  @keyframes placeLeaves {
+    to {
+      opacity: 0;
+      translate: 0 0.4em;
+      filter: blur(6px);
+    }
+  }
+
+  @keyframes placeEnters {
+    from {
+      opacity: 0;
+      translate: 0 -0.4em;
+      filter: blur(6px);
+    }
+  }
+
+  .gym__body {
+    max-width: 44ch;
+    margin-top: var(--space6);
+    font-size: var(--fontSizeLead);
+    color: var(--colorTextSecondary);
+    text-wrap: pretty;
+  }
+
+  .gym__facts {
+    display: grid;
+    gap: var(--space8);
+    margin-top: var(--space12);
+  }
+
+  .gym__stat {
+    font-size: var(--fontSizeDisplay);
+    font-weight: var(--fontWeightBlack);
+    line-height: 1;
+    letter-spacing: var(--letterSpacingDisplay);
+    /* Cifras de ancho fijo: si no, el número baila mientras cuenta. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gym__stat span:first-child {
+    color: var(--colorBrand);
+  }
+
+  .gym__factTitle {
+    display: flex;
+    align-items: center;
+    gap: var(--space2);
+    font-size: var(--fontSizeTitle3);
+    font-weight: var(--fontWeightBold);
+  }
+
+  .gym__factTitle svg {
+    width: 26px;
+    height: 26px;
+    fill: none;
+    stroke: var(--colorBrand);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .gym__statLabel {
+    max-width: 30ch;
+    margin-top: var(--space2);
+    color: var(--colorTextSecondary);
+  }
+
+  .gym__phone {
+    display: flex;
+    justify-content: center;
+  }
+
+  @media (min-width: 700px) {
+    .gym__facts {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .gym__inner {
+      grid-template-columns: 1.2fr 1fr;
+    }
+  }
+</style>
+
+<script>
+  /** Cada cuánto cambia la palabra del titular. */
+  const PLACE_INTERVAL_MS = 2200;
+  /** Lo que dura la cuenta del número, de cero a su valor. */
+  const COUNT_DURATION_MS = 1600;
+
+  const prefersStillness = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function rotatePlaces(element: HTMLElement): void {
+    const places = JSON.parse(element.dataset.gymPlaces ?? '[]') as string[];
+    if (places.length < 2 || prefersStillness) return;
+
+    let index = 0;
+    window.setInterval(() => {
+      element.classList.remove('is-entering');
+      element.classList.add('is-leaving');
+
+      element.addEventListener(
+        'animationend',
+        () => {
+          index = (index + 1) % places.length;
+          element.textContent = places[index] ?? '';
+          element.classList.remove('is-leaving');
+          element.classList.add('is-entering');
+        },
+        { once: true },
+      );
+    }, PLACE_INTERVAL_MS);
+  }
+
+  function countUp(element: HTMLElement): void {
+    const target = Number(element.dataset.countTo);
+    const format = new Intl.NumberFormat(element.dataset.locale);
+    if (!Number.isFinite(target) || prefersStillness) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+
+      const start = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.min((now - start) / COUNT_DURATION_MS, 1);
+        // Frena al final: los últimos miles se ven llegar despacio.
+        const eased = 1 - (1 - progress) ** 4;
+        element.textContent = format.format(Math.round(target * eased));
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+      element.textContent = format.format(0);
+      requestAnimationFrame(tick);
+    });
+    observer.observe(element);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-gym]').forEach((section) => {
+    section.querySelectorAll<HTMLElement>('[data-gym-places]').forEach(rotatePlaces);
+    section.querySelectorAll<HTMLElement>('[data-count-to]').forEach(countUp);
+  });
+</script>

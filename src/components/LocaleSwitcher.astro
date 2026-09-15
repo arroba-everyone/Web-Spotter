@@ -1,0 +1,60 @@
+---
+/**
+ * Selector de idioma: dos enlaces a la misma página en el otro idioma.
+ *
+ * Son enlaces reales y no un desplegable con JavaScript porque solo hay dos
+ * idiomas: un desplegable costaría más código y sería más lento de usar.
+ */
+import { locales, useTranslations, type Locale } from '../i18n';
+import { localizedPath } from '../i18n/routes';
+
+const current = (Astro.currentLocale ?? 'es') as Locale;
+const t = useTranslations(current);
+
+const options = locales.map((locale) => ({
+  locale,
+  href: localizedPath(locale, Astro.url.pathname),
+  isCurrent: locale === current,
+}));
+---
+
+<nav class="localeSwitcher" aria-label={t.meta.localeName}>
+  {
+    options.map((option) => (
+      <a
+        href={option.href}
+        class:list={['localeSwitcher__option', { 'is-current': option.isCurrent }]}
+        aria-current={option.isCurrent ? 'true' : undefined}
+        hreflang={option.locale}
+      >
+        {option.locale.toUpperCase()}
+      </a>
+    ))
+  }
+</nav>
+
+<style>
+  .localeSwitcher {
+    display: flex;
+    align-items: center;
+    gap: var(--space1);
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightMedium);
+  }
+
+  .localeSwitcher__option {
+    padding: var(--space1) var(--space2);
+    border-radius: var(--radiusPill);
+    color: var(--colorTextTertiary);
+    transition: color var(--durationFast) var(--easingStandard);
+  }
+
+  .localeSwitcher__option:hover {
+    color: var(--colorTextPrimary);
+  }
+
+  .localeSwitcher__option.is-current {
+    color: var(--colorTextPrimary);
+    background-color: var(--colorSeparator);
+  }
+</style>

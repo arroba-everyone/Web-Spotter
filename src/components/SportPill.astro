@@ -1,0 +1,72 @@
+---
+/**
+ * Píldora de deporte: cápsula rellena del color de la disciplina, con su icono.
+ *
+ * Es la misma pieza que en los perfiles de la app (brief, §7). Los iconos son
+ * trazos sencillos dibujados aquí: los símbolos de Apple (SF Symbols) no se
+ * pueden usar fuera de sus plataformas.
+ */
+import { sportColor, type SportId } from '../domain/sports';
+import { useTranslations, type Locale } from '../i18n';
+
+interface Props {
+  sportId: SportId;
+  size?: 'regular' | 'large';
+}
+
+const { sportId, size = 'regular' } = Astro.props;
+const t = useTranslations(Astro.currentLocale as Locale);
+
+/** Trazo de cada icono sobre una cuadrícula de 24. */
+const iconPaths: Record<SportId, string> = {
+  // Mancuerna.
+  gym: 'M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11',
+  // Figura corriendo.
+  running: 'M13 4.5a1.5 1.5 0 1 0 0-.01M10 21l2.5-6 3 3v3M7 12.5l3-3.5 4 1 2.5 3M12.5 15l-2-4',
+  // Bicicleta.
+  cycling: 'M5.5 17.5a3.5 3.5 0 1 0 0-.01M18.5 17.5a3.5 3.5 0 1 0 0-.01M5.5 17.5 9 10h6l3.5 7.5M9 10 12 17.5l3-7.5M14 6h2.5',
+  // Pesa rusa, el material más reconocible de una prueba de Hyrox.
+  hyrox: 'M9 7.5a3 3 0 0 1 6 0M8 9.5h8l1.2 2.6A6 6 0 1 1 6.8 12.1Z',
+  // Barra de dominadas.
+  calisthenics: 'M3 5h18M8 5v4M16 5v4M8 9c0 3 1.5 5 4 5s4-2 4-5M12 14v7M9 21h6',
+  other: 'M12 5v14M5 12h14',
+};
+---
+
+<span class:list={['sportPill', `sportPill--${size}`]} style={`--sportColor: ${sportColor(sportId)}`}>
+  <svg class="sportPill__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d={iconPaths[sportId]} />
+  </svg>
+  {t.sports.names[sportId]}
+</span>
+
+<style>
+  .sportPill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space2);
+    padding: var(--space2) var(--space4) var(--space2) var(--space3);
+    border-radius: var(--radiusPill);
+    background-color: var(--sportColor);
+    color: #ffffff;
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightMedium);
+    white-space: nowrap;
+  }
+
+  .sportPill--large {
+    padding: var(--space3) var(--space6) var(--space3) var(--space4);
+    font-size: var(--fontSizeHeadline);
+    font-weight: var(--fontWeightSemibold);
+  }
+
+  .sportPill__icon {
+    width: 1.15em;
+    height: 1.15em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>

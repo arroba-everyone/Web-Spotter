@@ -1,0 +1,149 @@
+---
+/**
+ * Barra superior flotante, en cristal.
+ *
+ * Nace transparente sobre la portada y se vuelve cristal al bajar, sin
+ * JavaScript: lo hace una animación ligada al scroll. En los navegadores que no
+ * la entienden, es cristal desde el principio.
+ */
+import BrandMark from './BrandMark.astro';
+import LocaleSwitcher from './LocaleSwitcher.astro';
+import { useTranslations, type Locale } from '../i18n';
+import { localizedPath } from '../i18n/routes';
+
+const locale = (Astro.currentLocale ?? 'es') as Locale;
+const t = useTranslations(locale);
+const homePath = localizedPath(locale, '/');
+
+// Las secciones viven en la portada. Se enlazan con la ruta delante para que
+// también funcionen desde otras páginas, como «/descarga/»; estando ya en la
+// portada, el navegador solo se desplaza, sin recargar.
+const sections = [
+  { href: `${homePath}#como-funciona`, label: t.nav.howItWorks },
+  { href: `${homePath}#tu-gimnasio`, label: t.nav.gym },
+  { href: `${homePath}#seguridad`, label: t.nav.safety },
+  { href: `${homePath}#equipo`, label: t.nav.team },
+];
+---
+
+<header class="siteHeader">
+  <div class="siteHeader__bar glass">
+    <a class="siteHeader__brand" href={homePath} aria-label="Spotter">
+      <BrandMark size={26} alt="" />
+    </a>
+
+    <nav class="siteHeader__nav" aria-label={t.nav.label}>
+      {sections.map((section) => <a href={section.href}>{section.label}</a>)}
+    </nav>
+
+    <div class="siteHeader__actions">
+      <LocaleSwitcher />
+      <a class="siteHeader__cta" href={`${homePath}#descargar`}>{t.nav.download}</a>
+    </div>
+  </div>
+</header>
+
+<style>
+  .siteHeader {
+    position: fixed;
+    inset: var(--space3) 0 auto;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    padding-inline: var(--pageGutter);
+    pointer-events: none;
+  }
+
+  .siteHeader__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space4);
+    width: 100%;
+    max-width: var(--pageMaxWidth);
+    padding: var(--space2) var(--space2) var(--space2) var(--space4);
+    border-radius: var(--radiusPill);
+    pointer-events: auto;
+  }
+
+  /* Sobre la portada la barra estorba: empieza limpia y se hace cristal al bajar. */
+  @supports (animation-timeline: scroll()) {
+    .siteHeader__bar {
+      animation: headerBecomesGlass linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 160px;
+    }
+  }
+
+  @keyframes headerBecomesGlass {
+    from {
+      background-color: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      -webkit-backdrop-filter: blur(0px);
+      backdrop-filter: blur(0px);
+    }
+  }
+
+  .siteHeader__brand {
+    display: flex;
+  }
+
+  .siteHeader__nav {
+    display: none;
+    gap: var(--space6);
+    margin-inline: auto;
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightMedium);
+    color: var(--colorTextSecondary);
+  }
+
+  .siteHeader__nav a {
+    transition: color var(--durationFast) var(--easingStandard);
+  }
+
+  .siteHeader__nav a:hover {
+    color: var(--colorTextPrimary);
+  }
+
+  .siteHeader__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space2);
+    margin-left: auto;
+  }
+
+  /* En móvil no se enseña: abajo ya está la barra flotante de descarga, y dos
+     botones rojos a la vista se quitan protagonismo el uno al otro (brief, §4). */
+  .siteHeader__cta {
+    display: none;
+    place-items: center;
+    height: var(--buttonHeightCompact);
+    padding-inline: var(--space4);
+    border-radius: var(--radiusPill);
+    background-color: var(--colorBrand);
+    color: #ffffff;
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightSemibold);
+    white-space: nowrap;
+    transition: background-color var(--durationFast) var(--easingStandard);
+  }
+
+  .siteHeader__cta:hover {
+    background-color: var(--colorBrandPressed);
+  }
+
+  /* Los enlaces de sección solo caben a partir de tablet. */
+  @media (min-width: 900px) {
+    .siteHeader__nav {
+      display: flex;
+    }
+
+    .siteHeader__cta {
+      display: grid;
+    }
+
+    .siteHeader__actions {
+      margin-left: 0;
+    }
+  }
+</style>

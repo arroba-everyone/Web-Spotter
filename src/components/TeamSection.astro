@@ -1,0 +1,201 @@
+---
+/**
+ * El equipo: Paula en el negocio, Juan en iOS y Pablo en Android y backend.
+ *
+ * Las fotos se buscan en «src/assets/equipo/» por nombre («paula.jpg»,
+ * «juan.png»…). Si una no está, se enseña la inicial sobre un degradado, igual
+ * que la app con los perfiles sin foto, y el hueco queda listo para cuando llegue.
+ * No hay que tocar código para añadirla: ver «src/assets/equipo/LEEME.md».
+ */
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import Button from './Button.astro';
+import SectionHeading from './SectionHeading.astro';
+import { links } from '../domain/links';
+import { sportColor } from '../domain/sports';
+import { team, type TeamMemberId } from '../domain/team';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+
+// Vite resuelve este patrón al compilar y devuelve solo las fotos que existen.
+const photoFiles = import.meta.glob<ImageMetadata>('../assets/equipo/*.{jpg,jpeg,png,webp}', {
+  eager: true,
+  import: 'default',
+});
+
+function photoFor(id: TeamMemberId): ImageMetadata | undefined {
+  const match = Object.entries(photoFiles).find(([path]) => {
+    const fileName = path.split('/').pop() ?? '';
+    return fileName.replace(/\.[^.]+$/, '') === id;
+  });
+  return match?.[1];
+}
+
+const members = team.map((member) => ({
+  ...member,
+  photo: photoFor(member.id),
+  copy: t.team.members[member.id],
+}));
+---
+
+<section class="team" id="equipo">
+  <div class="pageContainer">
+    <SectionHeading eyebrow={t.team.eyebrow} title={t.team.title} lead={t.team.lead} />
+
+    <ul class="team__grid">
+      {
+        members.map((member, index) => (
+          <li class="team__card reveal" data-tilt style={`--accent: ${sportColor(member.accentSport)}; --cardOrder: ${index}`}>
+            <div class="team__portrait">
+              {member.photo ? (
+                <Image
+                  class="team__photo"
+                  src={member.photo}
+                  alt={member.name}
+                  widths={[360, 540, 720]}
+                  sizes="(min-width: 900px) 360px, 90vw"
+                  format="webp"
+                  quality="high"
+                  loading="lazy"
+                />
+              ) : (
+                <span class="team__initial" aria-hidden="true">
+                  {member.name.slice(0, 1)}
+                </span>
+              )}
+            </div>
+
+            <div class="team__info">
+              <p class="team__role">{member.copy.role}</p>
+              <h3 class="team__name">{member.name}</h3>
+              <p class="team__bio">{member.copy.bio}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="team__collaborate reveal">
+      <div>
+        <h3 class="team__collaborateTitle">{t.team.collaborateTitle}</h3>
+        <p class="team__collaborateBody">{t.team.collaborateBody}</p>
+      </div>
+      <Button href={`mailto:${links.contactEmail}`}>{t.team.collaborateAction}</Button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .team {
+    padding-block: var(--sectionPadding);
+  }
+
+  .team__grid {
+    display: grid;
+    gap: var(--space6);
+    margin-top: var(--space12);
+  }
+
+  .team__card {
+    overflow: hidden;
+    border-radius: var(--radiusXLarge);
+    background-color: var(--colorSurface);
+    transform: perspective(1000px) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg));
+    transition: transform var(--durationSlow) var(--easingStandard);
+  }
+
+  /* Retrato vertical 3:4, la proporción de las fotos de perfil de la app. */
+  .team__portrait {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    background: radial-gradient(
+        circle at 30% 20%,
+        color-mix(in srgb, var(--accent) 80%, #ffffff 20%),
+        color-mix(in srgb, var(--accent) 45%, #000000) 70%
+      );
+  }
+
+  .team__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: scale var(--durationSlow) var(--easingStandard);
+  }
+
+  .team__card:hover .team__photo {
+    scale: 1.05;
+  }
+
+  .team__initial {
+    font-size: clamp(6rem, 18vw, 10rem);
+    font-weight: var(--fontWeightBlack);
+    line-height: 1;
+    color: rgb(255 255 255 / 92%);
+    transition: scale var(--durationSlow) var(--easingSpring);
+  }
+
+  .team__card:hover .team__initial {
+    scale: 1.08;
+  }
+
+  .team__info {
+    padding: var(--space6);
+  }
+
+  .team__role {
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightSemibold);
+    color: var(--colorBrand);
+  }
+
+  .team__name {
+    margin-top: var(--space1);
+    font-size: var(--fontSizeTitle3);
+    font-weight: var(--fontWeightBold);
+  }
+
+  .team__bio {
+    margin-top: var(--space2);
+    color: var(--colorTextSecondary);
+    text-wrap: pretty;
+  }
+
+  .team__collaborate {
+    display: grid;
+    gap: var(--space6);
+    justify-items: start;
+    margin-top: var(--space16);
+    padding-top: var(--space12);
+  }
+
+  .team__collaborateTitle {
+    font-size: var(--fontSizeTitle3);
+    font-weight: var(--fontWeightBold);
+  }
+
+  .team__collaborateBody {
+    max-width: 52ch;
+    margin-top: var(--space2);
+    color: var(--colorTextSecondary);
+  }
+
+  @media (min-width: 760px) {
+    .team__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* La del medio va un poco más abajo: tres tarjetas en fila perfecta parecen una tabla de precios. */
+    .team__card:nth-child(2) {
+      margin-top: var(--space12);
+    }
+
+    .team__collaborate {
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+  }
+</style>

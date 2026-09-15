@@ -1,0 +1,76 @@
+---
+/**
+ * Distintivos oficiales de App Store y Google Play, en el idioma de la página.
+ *
+ * Se usan tal cual los entregan Apple y Google, como imagen: sus normas no
+ * permiten redibujarlos, recolorearlos ni cambiarles las proporciones. De dónde
+ * sale cada fichero está en «public/badges/LEEME.md».
+ *
+ * Los dos se muestran a la misma altura, que es lo que piden ambas guías cuando
+ * aparecen juntos: ninguno debe parecer más importante que el otro.
+ */
+import { links } from '../domain/links';
+import { useTranslations, type Locale } from '../i18n';
+
+interface Props {
+  /** Alto de los dos distintivos, en píxeles. Apple fija un mínimo de 40. */
+  height?: number;
+  align?: 'start' | 'center';
+}
+
+const { height = 48, align = 'start' } = Astro.props;
+const t = useTranslations(Astro.currentLocale as Locale);
+const language = t.meta.htmlLang === 'en' ? 'en' : 'es';
+
+// Proporciones de los ficheros oficiales, para reservar el hueco exacto.
+const stores = [
+  {
+    href: links.appStore,
+    src: `/badges/app-store-${language}.svg`,
+    alt: t.download.appStoreAlt,
+    ratio: 119.66407 / 40,
+  },
+  {
+    href: links.googlePlay,
+    src: `/badges/google-play-${language}.svg`,
+    alt: t.download.googlePlayAlt,
+    ratio: 238.96 / 70.87,
+  },
+];
+---
+
+<div class:list={['storeBadges', `storeBadges--${align}`]}>
+  {
+    stores.map((store) => (
+      <a class="storeBadges__link" href={store.href} target="_blank" rel="noopener">
+        <img src={store.src} alt={store.alt} width={Math.round(height * store.ratio)} height={height} />
+      </a>
+    ))
+  }
+</div>
+
+<style>
+  .storeBadges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space3);
+  }
+
+  .storeBadges--center {
+    justify-content: center;
+  }
+
+  .storeBadges__link {
+    display: inline-flex;
+    border-radius: var(--radiusSmall);
+    transition: scale var(--durationFast) var(--easingStandard);
+  }
+
+  .storeBadges__link:hover {
+    scale: 1.04;
+  }
+
+  .storeBadges__link:active {
+    scale: 0.97;
+  }
+</style>

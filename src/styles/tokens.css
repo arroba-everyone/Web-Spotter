@@ -1,0 +1,142 @@
+/*
+ * Tokens de diseño de Spotter.
+ *
+ * Única fuente de verdad para color, espaciado, radios, tipografía y movimiento.
+ * Ningún componente escribe un color o una medida a mano: si un valor no está
+ * aquí, es que todavía no es una decisión de diseño.
+ *
+ * La web es solo oscura, igual que la app. No es una limitación: el negro es la
+ * identidad de la marca, hace que las fotos de las personas destaquen y es lo
+ * que pide el brief de la 2.0. Mantener un modo claro obligaba a rehacer cada
+ * halo, cada cristal y cada captura para un fondo que la marca no usa.
+ *
+ * Valores tomados de la guía de marca de la app 2.0 (documento interno).
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* --- Color de marca ------------------------------------------------ */
+  /* El rojo oficial es #C10D19; sobre negro pierde contraste y se aclara. */
+  --colorBrand: #e62b36;
+  --colorBrandPressed: #c10d19;
+
+  /* --- Fondos y superficies ------------------------------------------ */
+  --colorBackground: #000000;
+  --colorSurface: #1c1c1e;
+  --colorSurfaceRaised: #2c2c2e;
+
+  /* --- Texto ---------------------------------------------------------- */
+  /* Translúcidos, igual que en iOS: se adaptan solos al fondo sobre el que caen. */
+  --colorTextPrimary: #ffffff;
+  --colorTextSecondary: rgb(235 235 245 / 60%);
+  --colorTextTertiary: rgb(235 235 245 / 30%);
+
+  --colorSeparator: rgb(235 235 245 / 14%);
+
+  /* --- Cristal (Liquid Glass) ----------------------------------------- */
+  /* Solo para controles: botones secundarios, barras y píldoras flotantes. */
+  --glassFill: rgb(255 255 255 / 8%);
+  --glassFillHover: rgb(255 255 255 / 14%);
+  --glassBorder: rgb(255 255 255 / 14%);
+  --glassBlur: blur(24px) saturate(160%);
+  --glassShadow:
+    inset 0 1px 0 rgb(255 255 255 / 18%),
+    0 8px 30px rgb(0 0 0 / 35%);
+  /* Lo que recibe quien pide menos transparencia en su sistema. */
+  --glassSolidFill: #2c2c2e;
+
+  /* --- Un color por deporte ------------------------------------------- */
+  /* Colores de sistema de Apple en modo oscuro, los mismos que usa la app. */
+  --colorSportGym: #ff453a;
+  --colorSportRunning: #ff9f0a;
+  --colorSportCycling: #40c8e0;
+  --colorSportHyrox: #5e5ce6;
+  --colorSportCalisthenics: #bf5af2;
+  --colorSportOther: #8e8e93;
+
+  /* --- Espaciado ------------------------------------------------------ */
+  /* Escala de 4. No existe ningún hueco fuera de esta lista. */
+  --space1: 4px;
+  --space2: 8px;
+  --space3: 12px;
+  --space4: 16px;
+  --space6: 24px;
+  --space8: 32px;
+  /* Propios de web: una página que se recorre con scroll separa más. */
+  --space12: 48px;
+  --space16: 64px;
+  --space20: 80px;
+
+  /* Aire por arriba y por abajo de cada sección. Crece con la ventana. */
+  --sectionPadding: clamp(64px, 10vw, 128px);
+
+  /* Margen lateral de página: los 16 de la app, más anchos en pantallas grandes. */
+  --pageGutter: var(--space4);
+  --pageMaxWidth: 1200px;
+
+  /* --- Radios de esquina ---------------------------------------------- */
+  --radiusSmall: 10px;
+  --radiusMedium: 16px;
+  --radiusLarge: 22px;
+  --radiusXLarge: 28px;
+  --radiusSheet: 36px;
+  --radiusPill: 999px;
+
+  /* --- Tipografía ------------------------------------------------------ */
+  /* SF Pro en Apple, Inter donde esté instalada y la del sistema en el resto.
+     No se descarga ninguna fuente: la web carga igual de rápido en cualquier sitio. */
+  --fontFamilyBase: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter',
+    system-ui, sans-serif;
+
+  /* Los titulares crecen con la ventana mediante clamp(): sin saltos por breakpoint. */
+  --fontSizeMega: clamp(3rem, 11vw, 9.5rem);
+  --fontSizeDisplay: clamp(2.75rem, 8vw, 6.25rem);
+  --fontSizeTitle: clamp(2.1rem, 5.2vw, 4.25rem);
+  --fontSizeTitle3: clamp(1.25rem, 2.2vw, 1.6rem);
+  --fontSizeLead: clamp(1.05rem, 1.6vw, 1.3rem);
+  --fontSizeHeadline: 1.125rem;
+  --fontSizeBody: 1rem;
+  --fontSizeCaption: 0.8125rem;
+
+  --fontWeightRegular: 400;
+  --fontWeightMedium: 500;
+  --fontWeightSemibold: 600;
+  --fontWeightBold: 700;
+  --fontWeightBlack: 800;
+
+  --lineHeightTight: 0.95;
+  --lineHeightSnug: 1.15;
+  --lineHeightNormal: 1.55;
+
+  /* Interletrado de los titulares: la marca pone el peso, y a ese tamaño las
+     letras sin cerrar se desarman. */
+  --letterSpacingDisplay: -0.045em;
+  --letterSpacingTitle: -0.035em;
+  --letterSpacingEyebrow: 0.08em;
+
+  /* --- Movimiento ------------------------------------------------------ */
+  --durationFast: 180ms;
+  --durationNormal: 320ms;
+  --durationSlow: 700ms;
+  /* La curva de iOS: arranca rápido y se posa despacio. */
+  --easingStandard: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Con un pequeño rebote al final, para lo que «aterriza». */
+  --easingSpring: cubic-bezier(0.22, 1.2, 0.36, 1);
+
+  /* --- Elevación -------------------------------------------------------- */
+  --shadowFloating: 0 8px 32px rgb(0 0 0 / 45%);
+  --shadowPhone: 0 40px 120px rgb(0 0 0 / 70%);
+
+  /* --- Botones ---------------------------------------------------------- */
+  /* Alto de la cápsula principal, el mismo que en la app. */
+  --buttonHeight: 52px;
+  --buttonHeightCompact: 40px;
+}
+
+/* A partir de tablet el margen lateral respira más. */
+@media (min-width: 768px) {
+  :root {
+    --pageGutter: var(--space8);
+  }
+}

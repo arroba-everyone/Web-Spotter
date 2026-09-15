@@ -1,0 +1,124 @@
+---
+/**
+ * Privacidad y seguridad (brief, §8, punto 6).
+ *
+ * Solo cuenta lo que la app ya hace. Filas sin tarjetas ni separadores, con el
+ * icono en un círculo tintado, que es como son las listas de la app (brief, §7).
+ */
+import SectionHeading from './SectionHeading.astro';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+
+/** Un icono por punto, en el mismo orden que los textos. Trazos sobre una cuadrícula de 24. */
+const icons = [
+  // Pin tachado: ubicación que no se enseña.
+  'M12 21s-6-5.5-6-10a6 6 0 0 1 9.6-4.8M18 11c0 1.5-.7 3.2-1.7 4.8M4 4l16 16',
+  // Foto sin punto de ubicación.
+  'M4 7h3l2-2h6l2 2h3v12H4ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z',
+  // Bandera de reportar.
+  'M6 21V4M6 4h11l-2.5 4L17 12H6',
+  // Papelera.
+  'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+];
+---
+
+<section class="privacy" id="seguridad">
+  <div class="pageContainer">
+    <SectionHeading eyebrow={t.privacy.eyebrow} title={t.privacy.title} />
+
+    <ul class="privacy__list">
+      {
+        t.privacy.items.map((item, index) => (
+          <li class="privacy__item reveal">
+            <span class="privacy__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={icons[index]} />
+              </svg>
+            </span>
+            <div>
+              <h3 class="privacy__title">{item.title}</h3>
+              <p class="privacy__body">{item.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="privacy__adults reveal">
+      <span>18+</span>
+      {t.privacy.adults}
+    </p>
+  </div>
+</section>
+
+<style>
+  .privacy {
+    padding-block: var(--sectionPadding);
+  }
+
+  .privacy__list {
+    display: grid;
+    gap: var(--space8) var(--space12);
+    margin-top: var(--space12);
+  }
+
+  .privacy__item {
+    display: flex;
+    gap: var(--space4);
+  }
+
+  .privacy__icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--colorBrand) 16%, transparent);
+    color: var(--colorBrand);
+  }
+
+  .privacy__icon svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .privacy__title {
+    font-size: var(--fontSizeHeadline);
+    font-weight: var(--fontWeightSemibold);
+  }
+
+  .privacy__body {
+    max-width: 40ch;
+    margin-top: var(--space1);
+    color: var(--colorTextSecondary);
+  }
+
+  .privacy__adults {
+    display: flex;
+    align-items: center;
+    gap: var(--space3);
+    margin-top: var(--space12);
+    color: var(--colorTextSecondary);
+  }
+
+  .privacy__adults span {
+    padding: var(--space1) var(--space3);
+    border: 1.5px solid var(--colorTextSecondary);
+    border-radius: var(--radiusSmall);
+    font-weight: var(--fontWeightBold);
+    color: var(--colorTextPrimary);
+  }
+
+  @media (min-width: 760px) {
+    .privacy__list {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

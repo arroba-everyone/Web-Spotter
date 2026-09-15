@@ -1,0 +1,127 @@
+---
+/**
+ * Barra de descarga flotante, en cristal, pegada abajo.
+ *
+ * Aparece cuando la portada ya ha quedado atrás y se va cuando llega la sección
+ * final de descarga: en esos dos sitios ya hay un distintivo a la vista y la
+ * barra solo estorbaría. Es la «barra de descarga» que el brief cuenta entre los
+ * usos correctos del cristal (§6).
+ *
+ * Solo tiene un botón, así que tiene que saber a qué tienda llevar: en un iPhone,
+ * al App Store; en Android, a Google Play; en un ordenador, a la sección de
+ * descarga, donde están los dos distintivos.
+ */
+import BrandMark from '../components/BrandMark.astro';
+import { links } from '../domain/links';
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+---
+
+<aside class="floatingBar glass" data-floating-bar aria-label={t.floatingBar.text}>
+  <BrandMark variant="symbol" size={30} alt="" />
+  <p class="floatingBar__text">{t.floatingBar.text}</p>
+  <a
+    class="floatingBar__action"
+    href="#descargar"
+    data-app-store={links.appStore}
+    data-google-play={links.googlePlay}
+  >
+    {t.floatingBar.action}
+  </a>
+</aside>
+
+<style>
+  .floatingBar {
+    position: fixed;
+    left: 50%;
+    bottom: max(var(--space4), env(safe-area-inset-bottom));
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: var(--space3);
+    width: min(calc(100% - 2 * var(--pageGutter)), 440px);
+    padding: var(--space2) var(--space2) var(--space2) var(--space3);
+    border-radius: var(--radiusPill);
+    opacity: 0;
+    translate: -50% 140%;
+    pointer-events: none;
+    transition:
+      opacity var(--durationNormal) var(--easingStandard),
+      translate var(--durationSlow) var(--easingSpring);
+  }
+
+  .floatingBar[data-visible] {
+    opacity: 1;
+    translate: -50% 0;
+    pointer-events: auto;
+  }
+
+  .floatingBar__text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightSemibold);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .floatingBar__action {
+    display: grid;
+    place-items: center;
+    height: var(--buttonHeightCompact);
+    padding-inline: var(--space4);
+    border-radius: var(--radiusPill);
+    background-color: var(--colorBrand);
+    color: #ffffff;
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightSemibold);
+  }
+</style>
+
+<script>
+  /** Enlaza el botón a la tienda del móvil del visitante, si se puede saber. */
+  function pointToStore(bar: HTMLElement): void {
+    const action = bar.querySelector<HTMLAnchorElement>('.floatingBar__action');
+    if (!action) return;
+
+    const agent = navigator.userAgent;
+    // Los iPad recientes se presentan como un Mac, pero con pantalla táctil.
+    const isApple = /iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/.test(agent);
+    const store = isApple ? action.dataset.appStore : isAndroid ? action.dataset.googlePlay : undefined;
+    if (!store) return;
+
+    action.href = store;
+    action.target = '_blank';
+    action.rel = 'noopener';
+  }
+
+  function startFloatingBar(bar: HTMLElement): void {
+    pointToStore(bar);
+
+    const hero = document.querySelector('[data-hero]');
+    const download = document.querySelector('[data-download]');
+    if (!hero || !download) return;
+
+    let heroVisible = true;
+    let downloadVisible = false;
+
+    const update = () => {
+      bar.toggleAttribute('data-visible', !heroVisible && !downloadVisible);
+    };
+
+    new IntersectionObserver(([entry]) => {
+      heroVisible = entry?.isIntersecting ?? false;
+      update();
+    }).observe(hero);
+
+    new IntersectionObserver(([entry]) => {
+      downloadVisible = entry?.isIntersecting ?? false;
+      update();
+    }).observe(download);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-floating-bar]').forEach(startFloatingBar);
+</script>
