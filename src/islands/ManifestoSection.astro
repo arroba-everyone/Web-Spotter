@@ -1,0 +1,148 @@
+---
+/**
+ * La frase que resume el producto, encendiéndose palabra a palabra al bajar.
+ *
+ * Mientras se hace scroll, la frase se queda fija en el centro y cada palabra se
+ * enciende cuando se ha bajado lo suficiente. Para que dé tiempo a leerla, la
+ * sección mide más de una pantalla.
+ *
+ * Por qué con JavaScript y no solo con CSS: la primera versión usaba animaciones
+ * de CSS ligadas al scroll. En ordenador funcionaba, pero el Safari del iPhone
+ * reconocía la función sin aplicar la configuración de cada palabra: la frase se
+ * quedaba fija, pero entera y encendida desde el principio. Calcular cuánto se ha
+ * bajado con unas líneas de guion funciona igual en todos los navegadores.
+ *
+ * Sin JavaScript, o si el sistema pide menos movimiento, la frase se ve entera y
+ * encendida, en una sección de altura normal.
+ */
+import { useTranslations, type Locale } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale as Locale);
+
+const words = t.manifesto.text.split(' ');
+// Las dos últimas palabras («de compañía» / «of company») van en rojo: son la idea.
+const highlightFrom = words.length - 2;
+---
+
+<section class="manifesto" id="manifiesto" data-manifesto>
+  <div class="manifesto__sticky">
+    <div class="pageContainer">
+      <p class="manifesto__text">
+        {
+          words.map((word, index) => (
+            <span class:list={['manifesto__word', { 'is-highlight': index >= highlightFrom }]}>
+              {word}{' '}
+            </span>
+          ))
+        }
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .manifesto {
+    padding-block: var(--sectionPadding);
+  }
+
+  .manifesto__text {
+    max-width: 17ch;
+    font-size: var(--fontSizeDisplay);
+    font-weight: var(--fontWeightBlack);
+    line-height: var(--lineHeightSnug);
+    letter-spacing: var(--letterSpacingDisplay);
+    text-wrap: balance;
+  }
+
+  .manifesto__word.is-highlight {
+    color: var(--colorBrand);
+  }
+
+  /* Todo lo que sigue solo se aplica cuando el guion ha arrancado. */
+
+  /* Más alta que la pantalla: el sobrante es el recorrido del efecto. */
+  .manifesto[data-enhanced] {
+    height: 260svh;
+    padding-block: 0;
+  }
+
+  .manifesto[data-enhanced] .manifesto__sticky {
+    position: sticky;
+    top: 0;
+    display: grid;
+    align-items: center;
+    height: 100svh;
+  }
+
+  .manifesto[data-enhanced] .manifesto__word {
+    color: rgb(235 235 245 / 14%);
+    transition: color var(--durationNormal) var(--easingStandard);
+  }
+
+  .manifesto[data-enhanced] .manifesto__word.is-lit {
+    color: var(--colorTextPrimary);
+  }
+
+  .manifesto[data-enhanced] .manifesto__word.is-lit.is-highlight {
+    color: var(--colorBrand);
+  }
+</style>
+
+<script>
+  /**
+   * Parte del recorrido en la que se encienden las palabras. El resto es una
+   * pausa con la frase ya completa, para que dé tiempo a leerla entera.
+   */
+  const LIGHTING_SHARE = 0.8;
+
+  function startManifesto(section: HTMLElement): void {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const words = Array.from(section.querySelectorAll<HTMLElement>('.manifesto__word'));
+    if (words.length === 0) return;
+
+    section.dataset.enhanced = '';
+
+    /** Cuánto se ha recorrido la sección, de 0 (entra arriba) a 1 (sale). */
+    function progress(): number {
+      const rect = section.getBoundingClientRect();
+      const travel = rect.height - window.innerHeight;
+      if (travel <= 0) return 1;
+      return Math.min(Math.max(-rect.top / travel, 0), 1);
+    }
+
+    let lastLit = -1;
+    let frameRequested = false;
+
+    function update(): void {
+      frameRequested = false;
+      const lit = Math.floor((progress() / LIGHTING_SHARE) * words.length);
+      // Solo se toca el DOM cuando cambia el número de palabras encendidas.
+      if (lit === lastLit) return;
+      lastLit = lit;
+      words.forEach((word, index) => word.classList.toggle('is-lit', index < lit));
+    }
+
+    function requestUpdate(): void {
+      if (frameRequested) return;
+      frameRequested = true;
+      requestAnimationFrame(update);
+    }
+
+    // Solo se escucha el scroll mientras la sección está cerca de la pantalla:
+    // el resto del tiempo no hay nada que calcular.
+    new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) {
+        window.addEventListener('scroll', requestUpdate, { passive: true });
+        requestUpdate();
+      } else {
+        window.removeEventListener('scroll', requestUpdate);
+        requestUpdate();
+      }
+    }).observe(section);
+
+    update();
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-manifesto]').forEach(startManifesto);
+</script>

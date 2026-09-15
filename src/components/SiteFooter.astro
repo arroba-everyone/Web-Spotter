@@ -2,6 +2,8 @@
 /**
  * Pie del sitio: marca, enlaces legales, contacto y redes.
  *
+ * Abajo, la firma de @everyone, la empresa que desarrolla Spotter.
+ *
  * La privacidad enlaza a la política ya publicada, que es la que exigen las
  * tiendas (brief, §10). Los términos aparecen solos cuando dejan de ser borrador.
  */
@@ -44,7 +46,13 @@ const footerLinks = [
       }
     </nav>
 
-    <p class="siteFooter__rights">© {year} Spotter. {t.footer.rights}</p>
+    <div class="siteFooter__bottom">
+      <p class="siteFooter__rights">© {year} Spotter. {t.footer.rights}</p>
+      <p class="siteFooter__builtBy">
+        {t.footer.builtBy}{' '}
+        <a href={links.developer} target="_blank" rel="noopener">{links.developerName}</a>
+      </p>
+    </div>
   </div>
 </footer>
 
@@ -77,9 +85,23 @@ const footerLinks = [
     color: var(--colorTextPrimary);
   }
 
-  .siteFooter__rights {
+  .siteFooter__bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space2) var(--space6);
     font-size: var(--fontSizeCaption);
     color: var(--colorTextTertiary);
+  }
+
+  .siteFooter__builtBy a {
+    font-weight: var(--fontWeightSemibold);
+    color: var(--colorTextSecondary);
+    transition: color var(--durationFast) var(--easingStandard);
+  }
+
+  .siteFooter__builtBy a:hover {
+    color: var(--colorTextPrimary);
   }
 
   @media (min-width: 800px) {
@@ -88,7 +110,7 @@ const footerLinks = [
       align-items: center;
     }
 
-    .siteFooter__rights {
+    .siteFooter__bottom {
       grid-column: 1 / -1;
     }
   }

@@ -6,7 +6,7 @@
  * ciertos tamaños de ventana o solo durante unos fotogramas. Aquí se simulan
  * diez segundos en cinco tamaños y se mide el peor caso.
  *
- * Durante la simulación se revuelven dos veces y el cursor pasa por encima,
+ * Durante la simulación se lanzan dos burbujas y el cursor pasa por encima,
  * que es cuando van más rápido y más fácil es que se monten.
  *
  *   npm run comprobar
@@ -41,7 +41,13 @@ for (const [width, height] of sizes) {
   // Empieza en el paso 0, antes de simular nada: la composición de partida es
   // justo la que se ve al cargar la página, y es donde apareció el fallo.
   for (let step = 0; step <= steps; step += 1) {
-    if (step === 120 || step === 360) field.shuffle();
+    // Dos lanzamientos fuertes, que es cuando más rápido van y más fácil se montan.
+    if (step === 120 || step === 360) {
+      const thrown = field.all[step === 120 ? 0 : 3]!;
+      field.grab(thrown.id);
+      field.dragTo(thrown.x + width * 0.3, thrown.y - height * 0.3, 1 / 60);
+      field.release();
+    }
     // El cursor da una vuelta por el centro entre los pasos 200 y 320.
     if (step === 200) field.setPointer(width / 2, height / 2);
     if (step > 200 && step < 320) {

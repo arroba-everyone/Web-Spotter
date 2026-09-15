@@ -7,7 +7,6 @@
  * primero, porque es lo que hay que leer antes de jugar.
  */
 import StoreBadges from './StoreBadges.astro';
-import Button from './Button.astro';
 import BubbleCanvas from '../islands/BubbleCanvas.astro';
 import { useTranslations, type Locale } from '../i18n';
 
@@ -29,7 +28,12 @@ const t = useTranslations(Astro.currentLocale as Locale);
 
       <div class="hero__actions hero__rise" style="--riseOrder: 5">
         <StoreBadges height={52} />
-        <Button variant="glass" href="#como-funciona">{t.hero.secondaryAction}</Button>
+        <!-- Enlace de texto y no botón: las tiendas son la única acción que debe
+             destacar. «Cómo funciona» está también en la barra de arriba. -->
+        <a class="hero__howItWorks" href="#como-funciona">
+          {t.hero.secondaryAction}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+        </a>
       </div>
     </div>
 
@@ -119,10 +123,61 @@ const t = useTranslations(Astro.currentLocale as Locale);
 
   .hero__actions {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space4);
+    flex-direction: column;
+    align-items: start;
+    gap: var(--space6);
     margin-top: var(--space8);
+  }
+
+  .hero__howItWorks {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space2);
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightSemibold);
+    color: var(--colorTextSecondary);
+    transition: color var(--durationFast) var(--easingStandard);
+  }
+
+  .hero__howItWorks:hover {
+    color: var(--colorTextPrimary);
+  }
+
+  .hero__howItWorks svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: translate var(--durationNormal) var(--easingSpring);
+  }
+
+  /*
+   * La flecha sube y baja despacio, sin parar: invita a bajar sin necesidad de
+   * un botón. Empieza cuando el titular ya ha terminado de aparecer, para no
+   * competir con esa entrada. Quien pide menos movimiento la ve quieta.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__howItWorks svg {
+      animation: arrowBobs 1.6s ease-in-out 1.2s infinite;
+    }
+
+    /* Al pasar el ratón se detiene abajo: ya ha llamado la atención. */
+    .hero__howItWorks:hover svg {
+      animation: none;
+    }
+  }
+
+  @keyframes arrowBobs {
+    50% {
+      translate: 0 5px;
+    }
+  }
+
+  .hero__howItWorks:hover svg {
+    translate: 0 3px;
   }
 
   /* Altura fija: la simulación necesita saber su alto antes de colocar nada. */

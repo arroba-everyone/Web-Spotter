@@ -5,10 +5,13 @@
  * Vive en «islands» porque carga JavaScript: la separación deja a la vista qué
  * partes del sitio son HTML puro y cuáles tienen coste.
  *
- * Lo que se puede hacer con ellas, igual que en la app (brief, §3 y §7):
+ * Lo que se puede hacer con ellas:
  * - Cogerlas y lanzarlas.
- * - Revolverlas con un botón o, en el móvil, agitándolo.
  * - Pasar el ratón por encima: se apartan un poco.
+ *
+ * No llevan rótulo, botón ni instrucciones, a propósito: la portada ya tiene su
+ * titular y sus dos tiendas, y cualquier texto más les quitaba protagonismo. Que
+ * se pueden mover se descubre solo, porque reaccionan en cuanto pasa el ratón.
  *
  * Quién sale y con qué foto lo decide «domain/dailySeries»; cómo se mueven,
  * «domain/bubbleField». Aquí solo se pinta y se escuchan gestos.
@@ -21,12 +24,6 @@ const t = useTranslations(Astro.currentLocale as Locale);
 ---
 
 <div class="bubbleScene" data-bubble-scene>
-  <p class="bubbleScene__label">
-    <span>{t.hero.seriesLabel}</span>
-    <span aria-hidden="true">·</span>
-    <span data-series-countdown data-template={t.hero.changesIn}>{t.hero.changesAtMidnight}</span>
-  </p>
-
   <div
     class="bubbleCanvas"
     data-bubble-canvas
@@ -58,44 +55,20 @@ const t = useTranslations(Astro.currentLocale as Locale);
       ))
     }
   </div>
-
-  <div class="bubbleScene__controls">
-    <button class="bubbleScene__shuffle glass" type="button" data-bubble-shuffle>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 7h3.5c4 0 5 10 9 10H20M17 14l3 3-3 3M4 17h3.5c1.4 0 2.4-1.2 3.3-2.7M17 4l3 3-3 3M20 7h-3.5c-1.4 0-2.4 1.2-3.3 2.7" />
-      </svg>
-      {t.hero.shuffle}
-    </button>
-    <span class="bubbleScene__hint">{t.hero.dragHint}</span>
-  </div>
 </div>
 
 <style>
   .bubbleScene {
     display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: var(--space4);
     height: 100%;
-  }
-
-  /* El rótulo de la app, arriba y en gris pequeño (brief, §7). */
-  .bubbleScene__label {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--space2);
-    font-size: var(--fontSizeCaption);
-    color: var(--colorTextSecondary);
-    text-align: center;
   }
 
   .bubbleCanvas {
     position: relative;
     min-height: 0;
-    /* Decorativo: que arrastrar no seleccione texto ni haga scroll en el móvil. */
+    /* Decorativo: que arrastrar no seleccione texto. */
     user-select: none;
     -webkit-user-select: none;
-    touch-action: none;
   }
 
   .bubble {
@@ -127,6 +100,12 @@ const t = useTranslations(Astro.currentLocale as Locale);
       color-mix(in srgb, var(--sportColor) 70%, #000000)
     );
     cursor: grab;
+    /*
+     * El dedo solo se queda «atrapado» encima de una burbuja, para poder
+     * arrastrarla. Antes lo estaba en todo el recuadro y en el móvil, si se
+     * empezaba a deslizar en el hueco entre burbujas, la página no bajaba.
+     */
+    touch-action: none;
     /* La posición la escribe el bucle en «transform»; el centrado usa
        «translate», que es otra propiedad, y así no se pisan. */
     translate: -50% -50%;
@@ -157,51 +136,6 @@ const t = useTranslations(Astro.currentLocale as Locale);
     font-size: 2.4rem;
     font-weight: var(--fontWeightBold);
     color: #ffffff;
-  }
-
-  .bubbleScene__controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space4);
-  }
-
-  .bubbleScene__shuffle {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space2);
-    height: var(--buttonHeightCompact);
-    padding-inline: var(--space4);
-    border-radius: var(--radiusPill);
-    font-size: var(--fontSizeCaption);
-    font-weight: var(--fontWeightSemibold);
-    transition:
-      background-color var(--durationFast) var(--easingStandard),
-      scale var(--durationFast) var(--easingStandard);
-  }
-
-  .bubbleScene__shuffle:hover {
-    background-color: var(--glassFillHover);
-  }
-
-  .bubbleScene__shuffle:active {
-    scale: 0.95;
-  }
-
-  .bubbleScene__shuffle svg {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .bubbleScene__hint {
-    font-size: var(--fontSizeCaption);
-    color: var(--colorTextTertiary);
   }
 
   /* Hasta que el guion no las ha colocado, no hay nada que enseñar. */
@@ -238,28 +172,7 @@ const t = useTranslations(Astro.currentLocale as Locale);
 
 <script>
   import { BubbleField } from '../domain/bubbleField';
-  import { hoursUntilMidnight } from '../domain/countdown';
   import type { SportId } from '../domain/sports';
-
-  /** Aceleración a partir de la cual se considera que el móvil se ha agitado, en m/s². */
-  const SHAKE_THRESHOLD = 22;
-  /** Tiempo mínimo entre dos sacudidas, para que un meneo no cuente cinco veces. */
-  const SHAKE_COOLDOWN_MS = 900;
-  /** Cada cuánto se refresca la cuenta atrás. Cambia de hora en hora: basta con un minuto. */
-  const COUNTDOWN_REFRESH_MS = 60_000;
-
-  /** La cuenta atrás del rótulo. Sin guion se queda en «Cambian a medianoche». */
-  function startCountdown(scene: HTMLElement): void {
-    const label = scene.querySelector<HTMLElement>('[data-series-countdown]');
-    const template = label?.dataset.template;
-    if (!label || !template) return;
-
-    const render = () => {
-      label.textContent = template.replace('{hours}', String(hoursUntilMidnight(new Date())));
-    };
-    render();
-    window.setInterval(render, COUNTDOWN_REFRESH_MS);
-  }
 
   /**
    * Conecta la simulación con el DOM.
@@ -272,8 +185,6 @@ const t = useTranslations(Astro.currentLocale as Locale);
     // desarrollo; sin esta marca habría dos simulaciones peleándose.
     if (!canvas || canvas.dataset.started !== undefined) return;
     canvas.dataset.started = '';
-
-    startCountdown(scene);
 
     const elements = Array.from(canvas.querySelectorAll<HTMLElement>('[data-bubble-index]'));
     const sportIds = (canvas.dataset.sports ?? '').split(',') as SportId[];
@@ -392,63 +303,6 @@ const t = useTranslations(Astro.currentLocale as Locale);
     canvas.addEventListener('pointerup', stopDragging);
     canvas.addEventListener('pointercancel', stopDragging);
 
-    // --- Revolver --------------------------------------------------------
-    function shuffle(): void {
-      field?.shuffle();
-      // Quien pidió menos movimiento también puede revolverlas: sin bucle, se
-      // avanza la simulación de golpe y se pinta el resultado.
-      if (field && animationId === 0) {
-        for (let step = 0; step < 90; step += 1) field.step(1 / 60);
-        paint();
-      }
-    }
-
-    const shuffleButton = scene.querySelector<HTMLButtonElement>('[data-bubble-shuffle]');
-    shuffleButton?.addEventListener('click', () => {
-      shuffle();
-      void listenToShakes();
-    });
-
-    /*
-     * Agitar el móvil, como en la app.
-     *
-     * En iPhone el navegador exige pedir permiso para leer el movimiento, y solo
-     * deja pedirlo tras un toque del visitante: por eso se intenta al pulsar
-     * «Revuélvelas» la primera vez. En Android basta con escuchar.
-     */
-    let listeningToShakes = false;
-    let lastShake = 0;
-
-    async function listenToShakes(): Promise<void> {
-      if (listeningToShakes || typeof DeviceMotionEvent === 'undefined') return;
-
-      const withPermission = DeviceMotionEvent as unknown as {
-        requestPermission?: () => Promise<'granted' | 'denied'>;
-      };
-      if (withPermission.requestPermission) {
-        try {
-          if ((await withPermission.requestPermission()) !== 'granted') return;
-        } catch {
-          return;
-        }
-      }
-
-      listeningToShakes = true;
-      window.addEventListener('devicemotion', (event) => {
-        const acceleration = event.accelerationIncludingGravity;
-        if (!acceleration) return;
-        const force = Math.hypot(acceleration.x ?? 0, acceleration.y ?? 0, acceleration.z ?? 0);
-        if (force < SHAKE_THRESHOLD || event.timeStamp - lastShake < SHAKE_COOLDOWN_MS) return;
-        lastShake = event.timeStamp;
-        shuffle();
-      });
-    }
-
-    // Android no pide permiso, así que ahí se puede escuchar desde el principio.
-    const needsPermission =
-      typeof DeviceMotionEvent !== 'undefined' &&
-      'requestPermission' in (DeviceMotionEvent as unknown as object);
-    if (!needsPermission) void listenToShakes();
   }
 
   document.querySelectorAll<HTMLElement>('[data-bubble-scene]').forEach(startBubbleScene);

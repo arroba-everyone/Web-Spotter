@@ -73,8 +73,12 @@ const ANGLE_JITTER = 0.85;
  * una de ellas puede acabar metida dentro de una tercera, y ese solape ya no se
  * deshace hasta el fotograma siguiente. Repitiendo, el amontonamiento se
  * desenreda dentro del mismo fotograma.
+ *
+ * Con 4 aguantaba el movimiento normal, pero un lanzamiento fuerte contra una
+ * pared dejaba dos burbujas montadas unos fotogramas; con 6 ya no pasaba, y 8
+ * deja margen. Con cinco burbujas son 80 comprobaciones: no se nota.
  */
-const SEPARATION_PASSES = 4;
+const SEPARATION_PASSES = 8;
 
 /** Distancia mínima al centro al nacer, como fracción del reparto completo. */
 const MIN_SPAWN_DISTANCE = 0.52;
@@ -127,9 +131,9 @@ const CENTERING_STRENGTH = 1.1;
 const MAX_SPEED = 46;
 
 /**
- * Cuánto se deja superar ese techo justo después de revolverlas o lanzarlas.
+ * Cuánto se deja superar ese techo justo después de lanzar una burbuja.
  *
- * Con el techo normal, un lanzamiento o un «agita» se quedaba en un empujón
+ * Con el techo normal, un lanzamiento se quedaba en un empujón
  * tímido: la burbuja salía despedida y a los dos fotogramas ya iba a paso de
  * paseo. Durante un momento se permite ir mucho más rápido, y luego se vuelve
  * poco a poco a la calma.
@@ -139,9 +143,6 @@ const AGITATED_SPEED_MULTIPLIER = 14;
 /** En cuántos segundos se disipa casi toda la agitación. */
 const AGITATION_DECAY_SECONDS = 1.4;
 
-/** Velocidad que recibe cada burbuja al revolver, en píxeles por segundo. */
-const SHUFFLE_MIN_SPEED = 260;
-const SHUFFLE_MAX_SPEED = 520;
 
 /**
  * Distancia a la que el cursor empieza a apartar las burbujas, en píxeles.
@@ -284,22 +285,6 @@ export class BubbleField {
     this.agitation = 1;
   }
 
-  /**
-   * Revuelve las cinco, como al agitar el móvil en la app.
-   *
-   * Aquí sí se usa azar de verdad: es un gesto del visitante y se espera que
-   * cada vez salga distinto. La colocación inicial, en cambio, es fija.
-   */
-  shuffle(random: () => number = Math.random): void {
-    this.agitation = 1;
-    for (const bubble of this.bubbles) {
-      if (bubble.id === this.grabbedId) continue;
-      const angle = random() * Math.PI * 2;
-      const speed = SHUFFLE_MIN_SPEED + random() * (SHUFFLE_MAX_SPEED - SHUFFLE_MIN_SPEED);
-      bubble.velocityX = Math.cos(angle) * speed;
-      bubble.velocityY = Math.sin(angle) * speed;
-    }
-  }
 
   /** Dónde está el cursor, para que las burbujas se aparten. null si ha salido. */
   setPointer(x: number | null, y: number | null): void {

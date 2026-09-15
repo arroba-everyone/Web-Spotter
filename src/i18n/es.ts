@@ -58,14 +58,8 @@ export const es = {
     subtitle:
       'Cada día, cinco personas que entrenan cerca de ti, con tus deportes y tu horario. Das un Spot, te contestan y ya tenéis plan.',
     secondaryAction: 'Cómo funciona',
-    seriesLabel: '5 personas con las que entrenar hoy',
-    // «{hours}» lo sustituye el guion con las horas que faltan hasta medianoche.
-    changesIn: 'Cambian en {hours} h',
-    changesAtMidnight: 'Cambian a medianoche',
-    shuffle: 'Revuélvelas',
-    dragHint: 'Cógelas y lánzalas',
     bubblesLabel:
-      'Tu serie de hoy: cinco burbujas con la foto de personas que entrenan, cada una con el color de su deporte. Se pueden coger, lanzar y revolver.',
+      'Tu serie de hoy: cinco burbujas con la foto de personas que entrenan, cada una con el color de su deporte. Se pueden coger y lanzar.',
   },
 
   marquee: {
@@ -274,6 +268,7 @@ export const es = {
     contact: 'Contacto',
     instagram: 'Instagram',
     rights: 'Todos los derechos reservados.',
+    builtBy: 'Desarrollada por',
   },
 };
 

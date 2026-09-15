@@ -48,13 +48,8 @@ export const en: Dictionary = {
     subtitle:
       'Every day, five people who train near you, with your sports and your schedule. Give a Spot, they answer and you have a plan.',
     secondaryAction: 'How it works',
-    seriesLabel: '5 people to train with today',
-    changesIn: 'New ones in {hours} h',
-    changesAtMidnight: 'New ones at midnight',
-    shuffle: 'Shake them up',
-    dragHint: 'Grab them and throw them',
     bubblesLabel:
-      'Your set for today: five bubbles with photos of people who train, each in the colour of their sport. You can grab, throw and shuffle them.',
+      'Your set for today: five bubbles with photos of people who train, each in the colour of their sport. You can grab and throw them.',
   },
 
   marquee: {
@@ -262,5 +257,6 @@ export const en: Dictionary = {
     contact: 'Contact',
     instagram: 'Instagram',
     rights: 'All rights reserved.',
+    builtBy: 'Built by',
   },
 };

@@ -18,6 +18,10 @@ export const links = {
   privacyPolicy: 'https://arrobaeveryone.com/spotter/privacidad',
 
   instagram: 'https://www.instagram.com/spotterapp_es/',
+
+  // La empresa que desarrolla la web y las apps. Se enlaza desde el pie.
+  developer: 'https://arrobaeveryone.com/aboutUs',
+  developerName: '@everyone',
   instagramHandle: '@spotterapp_es',
 
   // PENDIENTE: confirmar la dirección de contacto que atiende Paula.

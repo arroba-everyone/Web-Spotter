@@ -46,7 +46,8 @@ const t = useTranslations(Astro.currentLocale as Locale);
             <circle cx="12" cy="12" r="4" />
             <circle cx="17.2" cy="6.8" r="0.6" />
           </svg>
-          {t.community.eventsAction} {links.instagramHandle}
+          {/* Una sola cadena: al comprimir el HTML, Astro se come el espacio entre dos llaves seguidas. */}
+          {`${t.community.eventsAction} ${links.instagramHandle}`}
         </Button>
       </div>
     </div>

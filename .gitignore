@@ -19,3 +19,13 @@ dist/
 # Documentación interna: brief de la app, hoja de ruta y material de marca.
 # Se queda en el ordenador de cada uno; el repositorio es público.
 docs/
+
+# Fotos originales que se dejan en la raíz para convertirlas: pueden llevar la
+# ubicación GPS dentro. Las imágenes del proyecto viven en «src/assets» y
+# «public», nunca en la raíz (ver src/assets/equipo/LEEME.md).
+*.heic
+*.HEIC
+/*.jpg
+/*.jpeg
+/*.png
+/*.webp

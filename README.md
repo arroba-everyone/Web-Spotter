@@ -39,7 +39,7 @@ toma decisiones.** Es el mismo reparto de la app de iPhone, con otros nombres.
 
 ```
 src/
-  domain/     Lógica y datos puros: burbujas, equipo, enlaces, cuenta atrás
+  domain/     Lógica y datos puros: burbujas, equipo, enlaces, SEO
   i18n/       Los textos, uno por idioma, y la conversión de rutas
   assets/     Imágenes que Astro optimiza: capturas de la app y fotos del equipo
   content/    Documentos largos en Markdown (los legales)
@@ -60,18 +60,18 @@ descarga JavaScript; todo lo demás es HTML servido tal cual. El sitio entero
 envía unos **7 KB de JavaScript**.
 
 **Buena parte del movimiento no usa JavaScript**: las apariciones al bajar, la
-barra que se vuelve cristal, el manifiesto que se enciende y las cintas en
-movimiento son CSS ligado al scroll. En los navegadores que no lo entienden, el
+barra que se vuelve cristal y las cintas en movimiento son CSS. El manifiesto sí
+usa unas líneas de guion, porque con CSS solo no funcionaba en el iPhone. En los navegadores que no lo entienden, el
 contenido simplemente está ahí, quieto.
 
 ## La portada, sección a sección
 
 | Sección | Fichero | Qué tiene de vivo |
 |---|---|---|
-| Portada | `components/HeroSection` + `islands/BubbleCanvas` | Burbujas que se cogen, se lanzan, se revuelven (botón o agitando el móvil) y esquivan el ratón. Cuenta atrás hasta medianoche |
+| Portada | `components/HeroSection` + `islands/BubbleCanvas` | Burbujas que se cogen, se lanzan y esquivan el ratón. Sin rótulos ni botones alrededor: solo las tiendas destacan |
 | Cintas | `components/SportsMarquee` | Deportes y «Spot · Body · Mind · Repeat» en movimiento continuo, también con el ratón encima |
 | Cómo funciona | `islands/HowItWorksStory` | En escritorio el iPhone se queda fijo y cambia de pantalla según el paso que lees |
-| Manifiesto | `components/ManifestoSection` | La frase se enciende palabra a palabra al bajar |
+| Manifiesto | `islands/ManifestoSection` | La frase se queda fija y se enciende palabra a palabra al bajar, también en móvil |
 | Tu gimnasio, exacto | `islands/GymSection` | La palabra del titular va cambiando y el «+10.000» cuenta desde cero |
 | Dar un Spot | `components/SpotSection` + `islands/SpotDemo` | Demo que se pulsa: envías el Spot y te contestan |
 | Comunidad | `components/CommunitySection` | Píldoras de cristal flotando alrededor del teléfono |

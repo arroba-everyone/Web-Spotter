@@ -25,7 +25,7 @@ const firstPlace = t.gym.places[0] ?? '';
       <p class="eyebrow reveal">{t.gym.eyebrow}</p>
 
       <h2 class="gym__title reveal">
-        <span class="visuallyHidden">{t.gym.titleStart} {firstPlace}, {t.gym.titleEnd}</span>
+        <span class="visuallyHidden">{`${t.gym.titleStart} ${firstPlace}, ${t.gym.titleEnd}`}</span>
         <span aria-hidden="true">
           {t.gym.titleStart}{' '}
           <span class="gym__place" data-gym-places={JSON.stringify(t.gym.places)}>{firstPlace}</span>,
