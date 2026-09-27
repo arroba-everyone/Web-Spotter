@@ -1,0 +1,507 @@
+---
+/**
+ * La pantalla importante: la cola de denuncias y su ficha.
+ *
+ * La cola sale de `admin_reports`, la ficha de `admin_report_context`, y las
+ * medidas van por `resolver_denuncia` (la que ya existía) o por
+ * `admin_marcar_denuncia` cuando solo se abre o se descarta.
+ *
+ * Todas las medidas piden motivo y todas dejan rastro en `moderation_actions`.
+ */
+import PanelLayout from '../../layouts/PanelLayout.astro';
+---
+
+<PanelLayout title="Denuncias">
+  <h1 class="panelTitulo">Denuncias</h1>
+  <p class="panelSubtitulo">
+    Las más antiguas arriba, y las de menores por delante. El plazo que prometen las condiciones de
+    uso son 24 horas.
+  </p>
+
+  <div class="filtros">
+    <div class="panelCampo">
+      <label for="estado">Estado</label>
+      <select id="estado" data-filtro-estado>
+        <option value="pending" selected>Sin atender</option>
+        <option value="reviewing">En revisión</option>
+        <option value="resolved">Resueltas</option>
+        <option value="dismissed">Descartadas</option>
+        <option value="">Todas</option>
+      </select>
+    </div>
+  </div>
+
+  <p class="panelAviso panelAviso--error" data-error hidden></p>
+
+  <div class="panelTablaEnvoltorio">
+    <table class="panelTabla">
+      <thead>
+        <tr>
+          <th>Esperando</th>
+          <th>Tipo</th>
+          <th>Motivo</th>
+          <th>Señala a</th>
+          <th>Acumula</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody data-cola>
+        <tr>
+          <td colspan="6" class="panelTabla__vacia">Cargando…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="panelFicha" data-ficha hidden>
+    <div>
+      <div class="panelBloque">
+        <p class="panelBloque__titulo">Lo denunciado</p>
+        <div data-ficha-objetivo></div>
+      </div>
+
+      <div class="panelBloque" data-ficha-perfil-bloque hidden>
+        <p class="panelBloque__titulo">Perfil de quien está señalado</p>
+        <div class="panelFotos" data-ficha-fotos></div>
+        <div data-ficha-perfil></div>
+      </div>
+
+      <div class="panelBloque" data-ficha-conversacion-bloque hidden>
+        <p class="panelBloque__titulo">La conversación alrededor</p>
+        <div class="panelMensajes" data-ficha-conversacion></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panelBloque">
+        <p class="panelBloque__titulo">Quién es quién</p>
+        <dl class="panelDatos" data-ficha-personas></dl>
+      </div>
+
+      <div class="panelBloque">
+        <p class="panelBloque__titulo">Historial de la persona señalada</p>
+        <dl class="panelDatos" data-ficha-historial></dl>
+      </div>
+
+      <div class="panelBloque">
+        <p class="panelBloque__titulo">Qué hacemos</p>
+
+        <div class="panelCampo motivo">
+          <label for="motivo">Motivo (queda guardado con tu nombre)</label>
+          <textarea id="motivo" rows="3" data-motivo></textarea>
+        </div>
+
+        <div class="panelAcciones">
+          <button type="button" class="panelBoton" data-accion="descartar">Descartar</button>
+          <button type="button" class="panelBoton" data-accion="warning">Avisar</button>
+          <button type="button" class="panelBoton" data-accion="content_removal">
+            Retirar contenido
+          </button>
+          <button type="button" class="panelBoton" data-accion="suspend">Suspender</button>
+          <button type="button" class="panelBoton panelBoton--principal" data-accion="ban">
+            Expulsar
+          </button>
+        </div>
+
+        <p class="panelAviso panelAviso--error" data-error-ficha hidden></p>
+      </div>
+    </div>
+  </section>
+</PanelLayout>
+
+<style>
+  .filtros {
+    display: flex;
+    gap: var(--space4);
+    margin-top: var(--space6);
+  }
+
+  .filtros .panelCampo {
+    max-width: 220px;
+  }
+
+  .motivo {
+    margin-top: var(--space3);
+  }
+</style>
+
+<script>
+  import {
+    clienteSpotter,
+    exigirStaff,
+    mensajeDeError,
+    urlFirmada,
+  } from '../../scripts/panel/cliente';
+  import {
+    esUrgente,
+    esperaEnPalabras,
+    estaFueraDePlazo,
+    etiquetaAccion,
+    etiquetaEstado,
+    etiquetaEstadoCuenta,
+    etiquetaMotivo,
+    etiquetaObjetivo,
+    ordenarCola,
+    type AccionModeracion,
+    type FilaDenuncia,
+  } from '../../domain/panel/denuncias';
+
+  const cola = document.querySelector<HTMLElement>('[data-cola]');
+  const ficha = document.querySelector<HTMLElement>('[data-ficha]');
+  const filtroEstado = document.querySelector<HTMLSelectElement>('[data-filtro-estado]');
+  const motivo = document.querySelector<HTMLTextAreaElement>('[data-motivo]');
+  const error = document.querySelector<HTMLElement>('[data-error]');
+  const errorFicha = document.querySelector<HTMLElement>('[data-error-ficha]');
+
+  /** La denuncia abierta ahora mismo. Se necesita al pulsar una medida. */
+  let abierta: FilaDenuncia | null = null;
+
+  function avisar(elemento: HTMLElement | null, texto: string | null): void {
+    if (!elemento) return;
+    elemento.textContent = texto ?? '';
+    elemento.hidden = texto === null;
+  }
+
+  function celda(texto: string, clase?: string): HTMLTableCellElement {
+    const td = document.createElement('td');
+    td.textContent = texto;
+    if (clase) td.className = clase;
+    return td;
+  }
+
+  function etiquetaEn(texto: string, clase: string): HTMLElement {
+    const span = document.createElement('span');
+    span.className = `panelEtiqueta ${clase}`;
+    span.textContent = texto;
+    return span;
+  }
+
+  // --- La cola ------------------------------------------------------------
+
+  async function cargarCola(): Promise<void> {
+    if (!cola) return;
+    avisar(error, null);
+
+    const estado = filtroEstado?.value ?? 'pending';
+    const { data, error: fallo } = await clienteSpotter().rpc('admin_reports', {
+      p_status: estado === '' ? null : estado,
+      p_limit: 200,
+      p_offset: 0,
+    });
+
+    if (fallo) {
+      avisar(error, mensajeDeError(fallo));
+      return;
+    }
+
+    pintarCola(ordenarCola((data ?? []) as FilaDenuncia[]));
+  }
+
+  function pintarCola(filas: readonly FilaDenuncia[]): void {
+    if (!cola) return;
+    cola.replaceChildren();
+
+    if (filas.length === 0) {
+      const fila = document.createElement('tr');
+      const vacia = celda('No hay denuncias con ese estado.', 'panelTabla__vacia');
+      vacia.colSpan = 6;
+      fila.append(vacia);
+      cola.append(fila);
+      return;
+    }
+
+    const ahora = new Date();
+
+    for (const denuncia of filas) {
+      const fila = document.createElement('tr');
+      fila.dataset.seleccionable = '';
+
+      const espera = document.createElement('td');
+      espera.textContent = esperaEnPalabras(denuncia.created_at, ahora);
+      if (estaFueraDePlazo(denuncia, ahora)) {
+        espera.append(' ', etiquetaEn('fuera de plazo', 'panelEtiqueta--alerta'));
+      }
+
+      const motivoCelda = document.createElement('td');
+      motivoCelda.textContent = etiquetaMotivo(denuncia.reason);
+      if (esUrgente(denuncia)) {
+        motivoCelda.append(' ', etiquetaEn('urgente', 'panelEtiqueta--urgente'));
+      }
+
+      fila.append(
+        espera,
+        celda(etiquetaObjetivo(denuncia.target_type)),
+        motivoCelda,
+        celda(denuncia.reported_name ?? 'Sin identificar'),
+        celda(String(denuncia.denuncias_acumuladas)),
+        celda(etiquetaEstado(denuncia.status)),
+      );
+
+      fila.addEventListener('click', () => void abrir(denuncia));
+      cola.append(fila);
+    }
+  }
+
+  // --- La ficha -----------------------------------------------------------
+
+  /** Al abrir, la denuncia pasa a «en revisión» para que no la miren dos personas. */
+  async function abrir(denuncia: FilaDenuncia): Promise<void> {
+    abierta = denuncia;
+    avisar(errorFicha, null);
+    if (motivo) motivo.value = '';
+
+    const { data, error: fallo } = await clienteSpotter().rpc('admin_report_context', {
+      p_report_id: denuncia.id,
+    });
+
+    if (fallo) {
+      avisar(error, mensajeDeError(fallo));
+      return;
+    }
+
+    pintarFicha(data as Record<string, any>);
+    ficha?.removeAttribute('hidden');
+    ficha?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (denuncia.status === 'pending') {
+      await clienteSpotter().rpc('admin_marcar_denuncia', {
+        p_report_id: denuncia.id,
+        p_status: 'reviewing',
+      });
+    }
+  }
+
+  /** Una imagen privada que se pide firmada y aparece cuando llega. */
+  function imagenFirmada(cajon: string, clave: string, descripcion: string): HTMLElement {
+    const envoltorio = document.createElement('div');
+    envoltorio.className = 'panelFotos';
+
+    const imagen = document.createElement('img');
+    imagen.alt = descripcion;
+    envoltorio.append(imagen);
+
+    void urlFirmada(cajon, clave).then((url) => {
+      if (url) imagen.src = url;
+      else imagen.alt = 'Esta imagen ya no está disponible.';
+    });
+
+    return envoltorio;
+  }
+
+  function dato(lista: HTMLElement, titulo: string, valor: string): void {
+    const fila = document.createElement('div');
+    const dt = document.createElement('dt');
+    dt.textContent = titulo;
+    const dd = document.createElement('dd');
+    dd.textContent = valor;
+    fila.append(dt, dd);
+    lista.append(fila);
+  }
+
+  function pintarFicha(contexto: Record<string, any>): void {
+    const objetivo = document.querySelector<HTMLElement>('[data-ficha-objetivo]');
+    const personas = document.querySelector<HTMLElement>('[data-ficha-personas]');
+    const historial = document.querySelector<HTMLElement>('[data-ficha-historial]');
+    const conversacion = document.querySelector<HTMLElement>('[data-ficha-conversacion]');
+    const bloqueConversacion = document.querySelector<HTMLElement>(
+      '[data-ficha-conversacion-bloque]',
+    );
+    if (!objetivo || !personas || !historial || !conversacion || !bloqueConversacion) return;
+
+    // Lo denunciado.
+    objetivo.replaceChildren();
+    const denuncia = contexto['denuncia'] ?? {};
+    const descripcion = document.createElement('p');
+    descripcion.textContent =
+      denuncia.description?.trim() || 'Quien denuncia no escribió ninguna explicación.';
+    objetivo.append(descripcion);
+
+    if (contexto['mensaje']) {
+      const mensaje = document.createElement('p');
+      mensaje.className = 'panelMensaje is-denunciado';
+      mensaje.textContent = contexto['mensaje'].body ?? '(mensaje sin texto)';
+      objetivo.append(mensaje);
+
+      // Un mensaje denunciado puede ser una imagen, y entonces la imagen es la denuncia.
+      if (contexto['mensaje'].attachment_key) {
+        objetivo.append(imagenFirmada('chat-media', contexto['mensaje'].attachment_key, 'Imagen enviada en el chat'));
+      }
+    }
+
+    if (contexto['foto']) {
+      objetivo.append(
+        imagenFirmada('user-photos', contexto['foto'].storage_key, 'Foto denunciada'),
+      );
+
+      const estado = document.createElement('p');
+      estado.className = 'panelTarjeta__etiqueta';
+      estado.textContent =
+        contexto['foto'].moderation_status === 'approved'
+          ? 'La foto sigue visible en la app.'
+          : 'La foto ya está retirada: no la ve nadie.';
+      objetivo.append(estado);
+    }
+
+    if (contexto['grupo']) {
+      const grupo = document.createElement('p');
+      grupo.className = 'panelTarjeta__etiqueta';
+      grupo.textContent = `En: ${contexto['grupo'].name}`;
+      objetivo.append(grupo);
+    }
+
+    // El perfil de quien está señalado: lo que ve cualquiera en la app.
+    pintarPerfil(contexto['senalado'] ?? null);
+
+    // Quién es quién.
+    personas.replaceChildren();
+    dato(personas, 'Denuncia', contexto['quien_denuncia']?.display_name ?? 'Sin identificar');
+    /*
+     * Cuántas denuncias ha puesto quien denuncia. Es la señal contra las
+     * denuncias falsas: alguien que ha denunciado nueve veces merece otra
+     * lectura que quien denuncia por primera vez.
+     */
+    dato(
+      personas,
+      'Denuncias que ha puesto',
+      String(contexto['quien_denuncia']?.denuncias_puestas ?? 0),
+    );
+    dato(personas, 'Señala a', contexto['senalado']?.display_name ?? 'Sin identificar');
+    dato(personas, 'Su cuenta', etiquetaEstadoCuenta(contexto['senalado']?.status ?? null));
+    dato(personas, 'Ciudad', contexto['senalado']?.city_name ?? 'Sin ciudad');
+    dato(personas, 'Motivo', etiquetaMotivo(denuncia.reason ?? null));
+
+    // Historial.
+    historial.replaceChildren();
+    const acciones = (contexto['historial']?.acciones ?? []) as Array<Record<string, string>>;
+    dato(historial, 'Denuncias recibidas', String(contexto['historial']?.denuncias_recibidas ?? 0));
+    if (acciones.length === 0) {
+      dato(historial, 'Medidas anteriores', 'Ninguna');
+    } else {
+      for (const accion of acciones) {
+        dato(
+          historial,
+          etiquetaAccion(accion['action'] as AccionModeracion),
+          new Date(accion['created_at']).toLocaleDateString('es-ES'),
+        );
+      }
+    }
+
+    // La conversación alrededor.
+    const mensajes = (contexto['conversacion'] ?? []) as Array<Record<string, string>>;
+    conversacion.replaceChildren();
+    bloqueConversacion.hidden = mensajes.length === 0;
+
+    for (const mensaje of mensajes) {
+      const elemento = document.createElement('p');
+      const esElDenunciado = mensaje['id'] === contexto['mensaje']?.id;
+      elemento.className = `panelMensaje${esElDenunciado ? ' is-denunciado' : ''}`;
+
+      const autor = document.createElement('span');
+      autor.className = 'panelMensaje__autor';
+      const suyo = mensaje['sender_id'] === contexto['senalado']?.id;
+      autor.textContent = `${suyo ? 'Persona señalada' : 'La otra persona'} · ${new Date(mensaje['created_at']).toLocaleString('es-ES')}`;
+
+      elemento.append(autor, document.createTextNode(mensaje['body'] ?? '(sin texto)'));
+      conversacion.append(elemento);
+    }
+  }
+
+  /**
+   * El perfil de quien está señalado, con sus fotos.
+   *
+   * Sin esto, una denuncia contra una persona no se puede juzgar: solo pone
+   * quién denuncia a quién. Aquí se ve lo mismo que vería cualquiera en la app
+   * antes de darle un Spot, que es justo lo que hay que revisar.
+   */
+  function pintarPerfil(senalado: Record<string, any> | null): void {
+    const bloque = document.querySelector<HTMLElement>('[data-ficha-perfil-bloque]');
+    const fotos = document.querySelector<HTMLElement>('[data-ficha-fotos]');
+    const datos = document.querySelector<HTMLElement>('[data-ficha-perfil]');
+    if (!bloque || !fotos || !datos) return;
+
+    fotos.replaceChildren();
+    datos.replaceChildren();
+    bloque.hidden = senalado === null;
+    if (!senalado) return;
+
+    const resumen = document.createElement('p');
+    const edad = senalado['edad'] ? `${senalado['edad']} años` : 'sin edad';
+    resumen.textContent = `${senalado['display_name']} (@${senalado['username']}), ${edad}`;
+
+    const bio = document.createElement('p');
+    bio.className = 'panelTarjeta__etiqueta';
+    bio.textContent = senalado['bio']?.trim() || 'Sin descripción.';
+
+    const deportes = (senalado['deportes'] ?? []) as Array<Record<string, string>>;
+    const listaDeportes = document.createElement('p');
+    listaDeportes.className = 'panelTarjeta__etiqueta';
+    listaDeportes.textContent =
+      deportes.length === 0
+        ? 'Sin deportes elegidos.'
+        : deportes.map((deporte) => deporte['sport']).join(' · ');
+
+    datos.append(resumen, bio, listaDeportes);
+
+    // Las fotos van en enlaces firmados que caducan a los 60 segundos.
+    for (const foto of (senalado['fotos'] ?? []) as Array<Record<string, string>>) {
+      const imagen = document.createElement('img');
+      imagen.alt = `Foto del perfil de ${senalado['display_name']}`;
+      imagen.loading = 'lazy';
+      if (foto['moderation_status'] !== 'approved') imagen.classList.add('is-retirada');
+      fotos.append(imagen);
+
+      void urlFirmada('user-photos', foto['storage_key']).then((url) => {
+        if (url) imagen.src = url;
+        else imagen.alt = 'Esta foto ya no está disponible.';
+      });
+    }
+  }
+
+  // --- Las medidas --------------------------------------------------------
+
+  async function aplicar(accion: string): Promise<void> {
+    if (!abierta) return;
+
+    const texto = motivo?.value.trim() ?? '';
+    if (texto === '') {
+      avisar(errorFicha, 'Escribe el motivo: queda guardado y explica la decisión.');
+      return;
+    }
+
+    avisar(errorFicha, null);
+    const botones = document.querySelectorAll<HTMLButtonElement>('[data-accion]');
+    botones.forEach((boton) => (boton.disabled = true));
+
+    const { error: fallo } =
+      accion === 'descartar'
+        ? await clienteSpotter().rpc('admin_marcar_denuncia', {
+            p_report_id: abierta.id,
+            p_status: 'dismissed',
+            p_reason: texto,
+          })
+        : await clienteSpotter().rpc('resolver_denuncia', {
+            p_report_id: abierta.id,
+            p_action: accion,
+            p_reason: texto,
+          });
+
+    botones.forEach((boton) => (boton.disabled = false));
+
+    if (fallo) {
+      avisar(errorFicha, mensajeDeError(fallo));
+      return;
+    }
+
+    abierta = null;
+    ficha?.setAttribute('hidden', '');
+    await cargarCola();
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-accion]').forEach((boton) => {
+    boton.addEventListener('click', () => void aplicar(boton.dataset.accion ?? ''));
+  });
+
+  filtroEstado?.addEventListener('change', () => void cargarCola());
+
+  if (await exigirStaff()) await cargarCola();
+</script>

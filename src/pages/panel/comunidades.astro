@@ -1,0 +1,490 @@
+---
+/**
+ * Comunidades: crearlas y mantenerlas sin tocar SQL.
+ *
+ * Una comunidad NO es un grupo (§4). El grupo lo crea cualquiera con sus Spots
+ * confirmados y escriben todos; la comunidad la crea Spotter, entra cualquiera
+ * y solo escriben quienes la administran. Desde aquí solo se ven y se tocan
+ * comunidades: los grupos privados de la gente no salen.
+ */
+import PanelLayout from '../../layouts/PanelLayout.astro';
+---
+
+<PanelLayout title="Comunidades">
+  <h1 class="panelTitulo">Comunidades</h1>
+  <p class="panelSubtitulo">
+    Las crea Spotter y entra cualquiera. Quien escribe en ellas es la cuenta de la app que las
+    administra, no el panel.
+  </p>
+
+  <p class="panelAviso panelAviso--error" data-error hidden></p>
+
+  <div class="panelTablaEnvoltorio">
+    <table class="panelTabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Deporte</th>
+          <th>Sitio o zona</th>
+          <th>Visible para</th>
+          <th>Miembros</th>
+          <th>Último mensaje</th>
+        </tr>
+      </thead>
+      <tbody data-lista>
+        <tr><td colspan="6" class="panelTabla__vacia">Cargando…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="panelSeccion">
+    <div class="cabecera">
+      <h2 class="panelBloque__titulo" data-titulo-formulario>Nueva comunidad</h2>
+      <button type="button" class="panelBoton panelBoton--discreto" data-nueva hidden>
+        Crear otra nueva
+      </button>
+    </div>
+
+    <div class="panelFicha">
+      <div class="panelBloque">
+        <form class="formulario" data-formulario>
+          <div class="panelCampo">
+            <label for="nombre">Nombre</label>
+            <input id="nombre" name="nombre" required data-campo="name" />
+          </div>
+
+          <div class="panelCampo">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" name="descripcion" rows="3" data-campo="description"
+            ></textarea>
+          </div>
+
+          <div class="panelCampo">
+            <label for="deporte">Deporte (opcional)</label>
+            <select id="deporte" name="deporte" data-campo="sport_id" data-deportes>
+              <option value="">Sin deporte</option>
+            </select>
+          </div>
+
+          <div class="panelCampo">
+            <label for="zona">Zona (opcional)</label>
+            <input id="zona" name="zona" placeholder="Valencia centro" data-campo="area_name" />
+          </div>
+
+          <div class="panelCampo">
+            <label for="visibilidad">Visible para</label>
+            <select id="visibilidad" name="visibilidad" data-campo="visibility">
+              <option value="public">Cualquiera</option>
+              <option value="private">Solo quien tenga el enlace</option>
+              <option value="secret">Solo quien esté dentro</option>
+            </select>
+          </div>
+
+          <div class="panelCampo">
+            <label for="aforo">Aforo (opcional)</label>
+            <input id="aforo" name="aforo" type="number" min="2" max="10000" data-campo="max_members" />
+          </div>
+
+          <div class="panelCampo">
+            <label for="foto">Dirección de la foto (opcional)</label>
+            <input id="foto" name="foto" type="url" data-campo="photo_url" />
+          </div>
+
+          <div class="panelCampo" data-solo-al-crear>
+            <label for="gestor">Usuario de la app que la llevará</label>
+            <input id="gestor" name="gestor" placeholder="gimnasiocolon" data-campo="admin" />
+            <p class="ayuda">
+              Su nombre de usuario en la app, sin la arroba. Es quien podrá escribir en la
+              comunidad desde su móvil. Si se deja vacío, nadie podrá publicar en ella.
+            </p>
+          </div>
+
+          <p class="panelAviso panelAviso--error" data-error-formulario hidden></p>
+          <p class="panelAviso" data-hecho hidden></p>
+
+          <div class="panelAcciones">
+            <button type="submit" class="panelBoton panelBoton--principal" data-guardar>
+              Crear comunidad
+            </button>
+            <button type="button" class="panelBoton" data-retirar hidden>Retirar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panelBloque" data-bloque-miembros hidden>
+        <p class="panelBloque__titulo">Quién está dentro</p>
+        <dl class="panelDatos" data-miembros></dl>
+
+        <div class="panelCampo motivo">
+          <label for="nuevoAdmin">Meter a una cuenta de la app como administradora</label>
+          <input id="nuevoAdmin" placeholder="usuario, sin la arroba" data-nuevo-admin />
+          <p class="ayuda">
+            No hace falta que ya esté dentro. Será quien pueda escribir en la comunidad desde su
+            móvil.
+          </p>
+        </div>
+
+        <div class="panelAcciones">
+          <button type="button" class="panelBoton" data-hacer-admin>Hacer administradora</button>
+        </div>
+
+        <p class="panelAviso panelAviso--error" data-error-miembros hidden></p>
+        <p class="panelAviso" data-hecho-miembros hidden></p>
+      </div>
+    </div>
+  </section>
+</PanelLayout>
+
+<style>
+  .cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space4);
+  }
+
+  .formulario {
+    display: grid;
+    gap: var(--space4);
+  }
+
+  .ayuda {
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+  }
+
+  .motivo {
+    margin-top: var(--space4);
+  }
+</style>
+
+<script>
+  import { clienteSpotter, exigirStaff, mensajeDeError } from '../../scripts/panel/cliente';
+
+  /** Una comunidad, tal como la devuelve `admin_communities`. */
+  interface FilaComunidad {
+    id: string;
+    name: string;
+    description: string | null;
+    photo_url: string | null;
+    visibility: string;
+    sport_id: string | null;
+    sport_name: string | null;
+    place_id: string | null;
+    place_name: string | null;
+    area_name: string | null;
+    members_count: number;
+    max_members: number | null;
+    last_message_at: string | null;
+    created_at: string;
+  }
+
+  const VISIBILIDAD: Record<string, string> = {
+    public: 'Cualquiera',
+    private: 'Con el enlace',
+    secret: 'Solo quien está dentro',
+  };
+
+  const lista = document.querySelector<HTMLElement>('[data-lista]');
+  const formulario = document.querySelector<HTMLFormElement>('[data-formulario]');
+  const error = document.querySelector<HTMLElement>('[data-error]');
+  const errorFormulario = document.querySelector<HTMLElement>('[data-error-formulario]');
+  const hecho = document.querySelector<HTMLElement>('[data-hecho]');
+  const guardar = document.querySelector<HTMLButtonElement>('[data-guardar]');
+  const retirar = document.querySelector<HTMLButtonElement>('[data-retirar]');
+  const nueva = document.querySelector<HTMLButtonElement>('[data-nueva]');
+  const tituloFormulario = document.querySelector<HTMLElement>('[data-titulo-formulario]');
+  const soloAlCrear = document.querySelector<HTMLElement>('[data-solo-al-crear]');
+  const bloqueMiembros = document.querySelector<HTMLElement>('[data-bloque-miembros]');
+  // Los avisos de los miembros van en su propio bloque, al lado del botón que
+  // los provoca: el error salía antes en la otra columna y no se veía.
+  const errorMiembros = document.querySelector<HTMLElement>('[data-error-miembros]');
+  const hechoMiembros = document.querySelector<HTMLElement>('[data-hecho-miembros]');
+
+  /** La comunidad que se está editando, o null si el formulario crea una nueva. */
+  let editando: FilaComunidad | null = null;
+
+  function avisar(elemento: HTMLElement | null, texto: string | null): void {
+    if (!elemento) return;
+    elemento.textContent = texto ?? '';
+    elemento.hidden = texto === null;
+  }
+
+  function campo(nombre: string): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null {
+    return document.querySelector(`[data-campo="${nombre}"]`);
+  }
+
+  function celda(texto: string, clase?: string): HTMLTableCellElement {
+    const td = document.createElement('td');
+    td.textContent = texto;
+    if (clase) td.className = clase;
+    return td;
+  }
+
+  function fecha(valor: string | null): string {
+    return valor === null ? 'Nunca' : new Date(valor).toLocaleDateString('es-ES');
+  }
+
+  // --- El listado ---------------------------------------------------------
+
+  async function cargar(): Promise<void> {
+    if (!lista) return;
+    avisar(error, null);
+
+    const { data, error: fallo } = await clienteSpotter().rpc('admin_communities', {
+      p_limit: 100,
+      p_offset: 0,
+    });
+
+    if (fallo) {
+      avisar(error, mensajeDeError(fallo));
+      return;
+    }
+
+    pintarLista((data ?? []) as FilaComunidad[]);
+  }
+
+  function pintarLista(comunidades: readonly FilaComunidad[]): void {
+    if (!lista) return;
+    lista.replaceChildren();
+
+    if (comunidades.length === 0) {
+      const fila = document.createElement('tr');
+      const vacia = celda('Todavía no hay ninguna comunidad.', 'panelTabla__vacia');
+      vacia.colSpan = 6;
+      fila.append(vacia);
+      lista.append(fila);
+      return;
+    }
+
+    for (const comunidad of comunidades) {
+      const fila = document.createElement('tr');
+      fila.dataset.seleccionable = '';
+      fila.append(
+        celda(comunidad.name),
+        celda(comunidad.sport_name ?? 'Cualquiera'),
+        celda(comunidad.place_name ?? comunidad.area_name ?? 'Sin sitio'),
+        celda(VISIBILIDAD[comunidad.visibility] ?? comunidad.visibility),
+        celda(
+          comunidad.max_members
+            ? `${comunidad.members_count} de ${comunidad.max_members}`
+            : String(comunidad.members_count),
+        ),
+        celda(fecha(comunidad.last_message_at)),
+      );
+      fila.addEventListener('click', () => void editar(comunidad));
+      lista.append(fila);
+    }
+  }
+
+  // --- Crear y editar -----------------------------------------------------
+
+  function modoNueva(): void {
+    editando = null;
+    formulario?.reset();
+    if (tituloFormulario) tituloFormulario.textContent = 'Nueva comunidad';
+    if (guardar) guardar.textContent = 'Crear comunidad';
+    soloAlCrear?.removeAttribute('hidden');
+    retirar?.setAttribute('hidden', '');
+    nueva?.setAttribute('hidden', '');
+    bloqueMiembros?.setAttribute('hidden', '');
+    avisar(errorFormulario, null);
+    avisar(hecho, null);
+  }
+
+  async function editar(comunidad: FilaComunidad): Promise<void> {
+    editando = comunidad;
+    if (tituloFormulario) tituloFormulario.textContent = `Editar «${comunidad.name}»`;
+    if (guardar) guardar.textContent = 'Guardar cambios';
+    // La cuenta que administra se cambia abajo, en «quién está dentro».
+    soloAlCrear?.setAttribute('hidden', '');
+    retirar?.removeAttribute('hidden');
+    nueva?.removeAttribute('hidden');
+    avisar(errorFormulario, null);
+    avisar(hecho, null);
+
+    (campo('name') as HTMLInputElement).value = comunidad.name;
+    (campo('description') as HTMLTextAreaElement).value = comunidad.description ?? '';
+    (campo('photo_url') as HTMLInputElement).value = comunidad.photo_url ?? '';
+    (campo('area_name') as HTMLInputElement).value = comunidad.area_name ?? '';
+    (campo('visibility') as HTMLSelectElement).value = comunidad.visibility;
+    (campo('max_members') as HTMLInputElement).value = comunidad.max_members
+      ? String(comunidad.max_members)
+      : '';
+    (campo('sport_id') as HTMLSelectElement).value = comunidad.sport_id ?? '';
+
+    await cargarMiembros(comunidad.id);
+    bloqueMiembros?.removeAttribute('hidden');
+  }
+
+  async function enviar(): Promise<void> {
+    avisar(errorFormulario, null);
+    avisar(hecho, null);
+    if (guardar) guardar.disabled = true;
+
+    const valores = {
+      p_name: (campo('name') as HTMLInputElement).value.trim(),
+      p_description: (campo('description') as HTMLTextAreaElement).value.trim(),
+      p_photo_url: (campo('photo_url') as HTMLInputElement).value.trim(),
+      p_area_name: (campo('area_name') as HTMLInputElement).value.trim(),
+      p_visibility: (campo('visibility') as HTMLSelectElement).value,
+      p_max_members: (campo('max_members') as HTMLInputElement).value
+        ? Number((campo('max_members') as HTMLInputElement).value)
+        : null,
+      p_sport_id: (campo('sport_id') as HTMLSelectElement).value || null,
+    };
+
+    const { error: fallo } = editando
+      ? await clienteSpotter().rpc('admin_update_community', {
+          p_group_id: editando.id,
+          ...valores,
+        })
+      : await clienteSpotter().rpc('admin_create_community', {
+          ...valores,
+          p_admin_username: (campo('admin') as HTMLInputElement).value.trim() || null,
+        });
+
+    if (guardar) guardar.disabled = false;
+
+    if (fallo) {
+      avisar(errorFormulario, mensajeDeError(fallo));
+      return;
+    }
+
+    avisar(hecho, editando ? 'Cambios guardados.' : 'Comunidad creada.');
+    const abierta = editando;
+    await cargar();
+    if (!abierta) modoNueva();
+  }
+
+  async function retirarComunidad(): Promise<void> {
+    if (!editando) return;
+
+    const motivo = window.prompt(
+      `Vas a retirar «${editando.name}». No se borra, deja de verse. ¿Por qué?`,
+    );
+    if (motivo === null || motivo.trim() === '') return;
+
+    const { error: fallo } = await clienteSpotter().rpc('admin_delete_community', {
+      p_group_id: editando.id,
+      p_reason: motivo.trim(),
+    });
+
+    if (fallo) {
+      avisar(errorFormulario, mensajeDeError(fallo));
+      return;
+    }
+
+    modoNueva();
+    await cargar();
+  }
+
+  // --- Miembros -----------------------------------------------------------
+
+  async function cargarMiembros(idComunidad: string): Promise<void> {
+    const miembros = document.querySelector<HTMLElement>('[data-miembros]');
+    if (!miembros) return;
+    miembros.replaceChildren();
+
+    const { data, error: fallo } = await clienteSpotter().rpc('admin_community_members', {
+      p_group_id: idComunidad,
+    });
+
+    if (fallo) {
+      avisar(errorMiembros, mensajeDeError(fallo));
+      return;
+    }
+
+    const PAPELES: Record<string, string> = {
+      admin: 'Administra y escribe',
+      moderator: 'Modera y escribe',
+      member: 'Miembro',
+    };
+
+    const filas = (data ?? []) as Array<Record<string, string>>;
+    if (filas.length === 0) {
+      const fila = document.createElement('div');
+      fila.textContent = 'Todavía no hay nadie dentro.';
+      miembros.append(fila);
+      return;
+    }
+
+    for (const miembro of filas) {
+      const fila = document.createElement('div');
+      const dt = document.createElement('dt');
+      dt.textContent = `${miembro['display_name']} (@${miembro['username']})`;
+      const dd = document.createElement('dd');
+      dd.textContent = PAPELES[miembro['role']] ?? miembro['role'];
+      fila.append(dt, dd);
+      miembros.append(fila);
+    }
+  }
+
+  /**
+   * Mete a una cuenta de la app en la comunidad como administradora.
+   *
+   * Busca por nombre de usuario exacto y la mete aunque no estuviera dentro,
+   * que es el caso normal: acabas de crear la comunidad del gimnasio y se la
+   * entregas. Si ya estaba, le cambia el papel.
+   */
+  async function hacerAdministradora(): Promise<void> {
+    if (!editando) return;
+
+    const entrada = document.querySelector<HTMLInputElement>('[data-nuevo-admin]');
+    // La arroba se quita sola: escribirla es lo natural y no debería fallar por eso.
+    const usuario = entrada?.value.trim().replace(/^@/, '') ?? '';
+
+    avisar(errorMiembros, null);
+    avisar(hechoMiembros, null);
+
+    if (usuario === '') {
+      avisar(errorMiembros, 'Escribe el nombre de usuario de la cuenta.');
+      return;
+    }
+
+    const { error: fallo } = await clienteSpotter().rpc('admin_add_community_member', {
+      p_group_id: editando.id,
+      p_username: usuario,
+      p_role: 'admin',
+    });
+
+    if (fallo) {
+      avisar(errorMiembros, mensajeDeError(fallo));
+      return;
+    }
+
+    if (entrada) entrada.value = '';
+    avisar(hechoMiembros, `@${usuario} ya administra esta comunidad y puede escribir en ella.`);
+    await cargarMiembros(editando.id);
+  }
+
+  // --- Deportes para el desplegable ---------------------------------------
+
+  async function cargarDeportes(): Promise<void> {
+    const select = document.querySelector<HTMLSelectElement>('[data-deportes]');
+    if (!select) return;
+
+    const { data } = await clienteSpotter().from('sports').select('id, name').order('name');
+    for (const deporte of (data ?? []) as Array<{ id: string; name: string }>) {
+      const opcion = document.createElement('option');
+      opcion.value = deporte.id;
+      opcion.textContent = deporte.name;
+      select.append(opcion);
+    }
+  }
+
+  formulario?.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    void enviar();
+  });
+  retirar?.addEventListener('click', () => void retirarComunidad());
+  nueva?.addEventListener('click', modoNueva);
+  document
+    .querySelector<HTMLButtonElement>('[data-hacer-admin]')
+    ?.addEventListener('click', () => void hacerAdministradora());
+
+  if (await exigirStaff()) {
+    await cargarDeportes();
+    await cargar();
+  }
+</script>

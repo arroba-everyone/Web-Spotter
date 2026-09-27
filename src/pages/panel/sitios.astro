@@ -1,0 +1,186 @@
+---
+/**
+ * Sitios por revisar: los gimnasios y parques que da de alta la gente.
+ *
+ * Es la defensa contra los sitios duplicados o inventados (§6.6). La vista y la
+ * función de moderar ya existían en la base de datos; aquí solo se pintan.
+ */
+import PanelLayout from '../../layouts/PanelLayout.astro';
+---
+
+<PanelLayout title="Sitios">
+  <h1 class="panelTitulo">Sitios por revisar</h1>
+  <p class="panelSubtitulo">
+    Los da de alta la gente desde la app cuando su sitio no está. Mira si ya existe uno igual al
+    lado antes de aprobarlo.
+  </p>
+
+  <p class="panelAviso panelAviso--error" data-error hidden></p>
+
+  <div class="panelTablaEnvoltorio">
+    <table class="panelTabla">
+      <thead>
+        <tr>
+          <th>Sitio</th>
+          <th>Dirección</th>
+          <th>Quién lo dio de alta</th>
+          <th>Cerca</th>
+          <th>Mapa</th>
+          <th>Qué hacemos</th>
+        </tr>
+      </thead>
+      <tbody data-lista>
+        <tr><td colspan="6" class="panelTabla__vacia">Cargando…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</PanelLayout>
+
+<script>
+  import { clienteSpotter, exigirStaff, mensajeDeError } from '../../scripts/panel/cliente';
+  import { etiquetaEstadoCuenta } from '../../domain/panel/denuncias';
+
+  /** Una fila de `v_places_por_revisar`. */
+  interface FilaSitio {
+    id: string;
+    name: string;
+    type: string;
+    formatted_address: string | null;
+    city_name: string | null;
+    lat: number | null;
+    lng: number | null;
+    created_at: string;
+    creado_por: string | null;
+    estado_de_la_cuenta: string | null;
+    vecinos_200m: number | null;
+    altas_de_la_cuenta_24h: number | null;
+  }
+
+  const lista = document.querySelector<HTMLElement>('[data-lista]');
+  const error = document.querySelector<HTMLElement>('[data-error]');
+
+  function avisar(texto: string | null): void {
+    if (!error) return;
+    error.textContent = texto ?? '';
+    error.hidden = texto === null;
+  }
+
+  function celda(texto: string, clase?: string): HTMLTableCellElement {
+    const td = document.createElement('td');
+    td.textContent = texto;
+    if (clase) td.className = clase;
+    return td;
+  }
+
+  async function cargar(): Promise<void> {
+    if (!lista) return;
+    avisar(null);
+
+    const { data, error: fallo } = await clienteSpotter().rpc('admin_places_por_revisar');
+
+    if (fallo) {
+      avisar(mensajeDeError(fallo));
+      return;
+    }
+
+    pintar((data ?? []) as FilaSitio[]);
+  }
+
+  function pintar(sitios: readonly FilaSitio[]): void {
+    if (!lista) return;
+    lista.replaceChildren();
+
+    if (sitios.length === 0) {
+      const fila = document.createElement('tr');
+      const vacia = celda('No hay ningún sitio esperando.', 'panelTabla__vacia');
+      vacia.colSpan = 6;
+      fila.append(vacia);
+      lista.append(fila);
+      return;
+    }
+
+    for (const sitio of sitios) {
+      const fila = document.createElement('tr');
+
+      const quien = celda(
+        `${sitio.creado_por ?? 'Sin identificar'} · ${etiquetaEstadoCuenta(sitio.estado_de_la_cuenta)}`,
+      );
+
+      /*
+       * Las dos señales de que algo huele mal: que ya haya sitios a 200 metros
+       * (probable duplicado) y que esa cuenta haya dado de alta varios hoy.
+       */
+      const cerca = celda(
+        `${sitio.vecinos_200m ?? 0} a 200 m · ${sitio.altas_de_la_cuenta_24h ?? 0} altas hoy`,
+      );
+
+      const mapa = document.createElement('td');
+      if (sitio.lat !== null && sitio.lng !== null) {
+        const enlace = document.createElement('a');
+        enlace.href = `https://www.openstreetmap.org/?mlat=${sitio.lat}&mlon=${sitio.lng}#map=18/${sitio.lat}/${sitio.lng}`;
+        enlace.target = '_blank';
+        enlace.rel = 'noreferrer';
+        enlace.textContent = 'Ver en el mapa';
+        mapa.append(enlace);
+      } else {
+        mapa.textContent = 'Sin coordenadas';
+      }
+
+      const acciones = document.createElement('td');
+      acciones.append(
+        boton('Aprobar', () => void moderar(sitio, true)),
+        boton('Rechazar', () => void moderar(sitio, false)),
+      );
+
+      fila.append(
+        celda(sitio.name),
+        celda(sitio.formatted_address ?? sitio.city_name ?? 'Sin dirección'),
+        quien,
+        cerca,
+        mapa,
+        acciones,
+      );
+      lista.append(fila);
+    }
+  }
+
+  function boton(texto: string, alPulsar: () => void): HTMLButtonElement {
+    const elemento = document.createElement('button');
+    elemento.type = 'button';
+    elemento.className = 'panelBoton';
+    elemento.textContent = texto;
+    elemento.addEventListener('click', alPulsar);
+    return elemento;
+  }
+
+  /** Aprobar o rechazar llama a `moderar_sitio`, que ya existía en la base de datos. */
+  async function moderar(sitio: FilaSitio, aprobado: boolean): Promise<void> {
+    const nota = window.prompt(
+      aprobado
+        ? `Vas a aprobar «${sitio.name}». Puedes dejar una nota (opcional).`
+        : `Vas a rechazar «${sitio.name}». ¿Por qué?`,
+      '',
+    );
+    // Cancelar no hace nada; rechazar sin motivo tampoco.
+    if (nota === null) return;
+    if (!aprobado && nota.trim() === '') {
+      avisar('Para rechazar un sitio hace falta un motivo.');
+      return;
+    }
+
+    const { error: fallo } = await clienteSpotter().rpc('moderar_sitio', {
+      p_place_id: sitio.id,
+      p_aprobado: aprobado,
+      p_nota: nota.trim() === '' ? null : nota.trim(),
+    });
+
+    if (fallo) {
+      avisar(mensajeDeError(fallo));
+      return;
+    }
+
+    await cargar();
+  }
+
+  if (await exigirStaff()) await cargar();
+</script>

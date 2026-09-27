@@ -1,0 +1,104 @@
+---
+/**
+ * Armazón del panel interno.
+ *
+ * No usa BaseLayout a propósito: aquel lleva Open Graph, idiomas, datos
+ * estructurados y la barra de descarga, y aquí no pinta nada de eso. El panel
+ * es una herramienta de trabajo, no una página de producto.
+ *
+ * Nunca se indexa (PANEL-ADMIN.md §7): ni aquí ni en el sitemap. La seguridad
+ * la dan la contraseña y RLS, no que la dirección sea difícil de adivinar.
+ */
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/panel.css';
+
+interface Props {
+  title: string;
+  /** La pantalla de entrar no lleva menú ni botón de salir. */
+  conMenu?: boolean;
+}
+
+const { title, conMenu = true } = Astro.props;
+
+/* Las cinco pantallas del panel, en orden de importancia. */
+const secciones = [
+  { href: '/panel/', texto: 'Inicio' },
+  { href: '/panel/denuncias/', texto: 'Denuncias' },
+  { href: '/panel/personas/', texto: 'Personas' },
+  { href: '/panel/comunidades/', texto: 'Comunidades' },
+  { href: '/panel/sitios/', texto: 'Sitios' },
+];
+
+const rutaActual = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{`${title} · Panel de Spotter`}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+
+  <!-- «data-guardada» oculta el contenido hasta que la guardia confirma la sesión. -->
+  <body class="panelBody" data-guardada={conMenu ? '' : undefined}>
+    {
+      conMenu && (
+        <header class="panelHeader">
+          <a class="panelHeader__marca" href="/panel/">
+            Spotter <span>panel</span>
+          </a>
+
+          <nav class="panelNav" aria-label="Secciones del panel">
+            {secciones.map((seccion) => (
+              <a
+                href={seccion.href}
+                class:list={['panelNav__enlace', { 'is-activa': rutaActual === seccion.href }]}
+                aria-current={rutaActual === seccion.href ? 'page' : undefined}
+              >
+                {seccion.texto}
+              </a>
+            ))}
+          </nav>
+
+          <div class="panelHeader__cuenta">
+            <span data-panel-correo class="panelHeader__correo"></span>
+            <button type="button" class="panelBoton panelBoton--discreto" data-panel-salir>
+              Salir
+            </button>
+          </div>
+        </header>
+      )
+    }
+
+    <main class="panelMain">
+      <slot />
+    </main>
+
+    {
+      conMenu && (
+        <script>
+          import { exigirStaff, salir } from '../scripts/panel/cliente';
+
+          /*
+           * Guardia de la pantalla. La de verdad está en la base de datos: esto
+           * solo evita enseñar una pantalla vacía a quien no debería entrar.
+           */
+          const sesion = await exigirStaff();
+          if (sesion) {
+            document.body.dataset.listo = '';
+            const correo = document.querySelector<HTMLElement>('[data-panel-correo]');
+            if (correo) correo.textContent = sesion.email;
+          }
+
+          document
+            .querySelector<HTMLButtonElement>('[data-panel-salir]')
+            ?.addEventListener('click', () => void salir());
+        </script>
+      )
+    }
+  </body>
+</html>

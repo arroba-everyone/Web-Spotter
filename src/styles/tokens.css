@@ -128,6 +128,19 @@
   --shadowFloating: 0 8px 32px rgb(0 0 0 / 45%);
   --shadowPhone: 0 40px 120px rgb(0 0 0 / 70%);
 
+  /* --- Gráficas del panel interno --------------------------------------- */
+  /*
+   * Dos colores, uno por gráfica. No se usa el rojo de la marca: aquí el rojo
+   * significa «esto hay que atenderlo», y una barra roja de mensajes diría que
+   * pasa algo malo cuando no pasa nada.
+   *
+   * Comprobados sobre el fondo de las tarjetas (#1c1c1e): contraste suficiente,
+   * y se distinguen entre sí también con daltonismo (diferencia de 19 en protan,
+   * muy por encima del mínimo de 8).
+   */
+  --panelChartSpots: #2ea3bb;
+  --panelChartMensajes: #cf7d05;
+
   /* --- Botones ---------------------------------------------------------- */
   /* Alto de la cápsula principal, el mismo que en la app. */
   --buttonHeight: 52px;

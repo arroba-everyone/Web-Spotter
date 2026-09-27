@@ -1,0 +1,328 @@
+---
+/**
+ * Inicio del panel, en tres partes bien separadas:
+ *
+ *   1. Lo que hay que atender: lo único que pide una acción. Se pulsa y lleva a
+ *      su pantalla, y se pone en rojo cuando pasa de la raya.
+ *   2. Cómo va la cosa: números de situación. No se pulsan porque no llevan a
+ *      ningún sitio, y así se distingue de un vistazo qué es tarea y qué es dato.
+ *   3. Las últimas ocho semanas: dos gráficas de barras.
+ *
+ * Lo pidió Juan el 27/09/2026: «que se quede claro qué es información y qué son
+ * datos».
+ */
+import PanelLayout from '../../layouts/PanelLayout.astro';
+---
+
+<PanelLayout title="Inicio">
+  <h1 class="panelTitulo">Cómo va la cosa</h1>
+  <p class="panelSubtitulo">Datos de ahora mismo, sacados de la base de datos al abrir.</p>
+
+  <p class="panelAviso panelAviso--error" data-error hidden></p>
+
+  <section class="panelSeccion">
+    <h2 class="panelBloque__titulo">Esto hay que atenderlo</h2>
+    <p class="explicacion">Cada tarjeta lleva a su pantalla. En rojo, lo que no puede esperar.</p>
+    <div class="panelTarjetas" data-tareas></div>
+  </section>
+
+  <section class="panelSeccion">
+    <h2 class="panelBloque__titulo">Situación</h2>
+    <p class="explicacion">Solo información. No hay nada que hacer con estos números.</p>
+    <div class="panelTarjetas panelTarjetas--info" data-situacion></div>
+  </section>
+
+  <section class="panelSeccion">
+    <h2 class="panelBloque__titulo">Las últimas ocho semanas</h2>
+    <p class="explicacion">
+      Por semanas, no por días: con el movimiento de ahora, una gráfica diaria serían casi todo
+      ceros. Las altas no salen porque las 743 de la importación de la versión 1 aplastarían el
+      resto.
+    </p>
+
+    <div class="graficas">
+      <figure class="panelBloque grafica" data-grafica="spots">
+        <figcaption>
+          <span class="grafica__titulo">Spots confirmados</span>
+          <span class="grafica__total" data-total></span>
+        </figcaption>
+        <div class="grafica__lienzo" data-lienzo></div>
+      </figure>
+
+      <figure class="panelBloque grafica" data-grafica="mensajes">
+        <figcaption>
+          <span class="grafica__titulo">Mensajes enviados</span>
+          <span class="grafica__total" data-total></span>
+        </figcaption>
+        <div class="grafica__lienzo" data-lienzo></div>
+      </figure>
+    </div>
+  </section>
+</PanelLayout>
+
+<style>
+  .explicacion {
+    margin-top: var(--space2);
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+  }
+
+  /* Las de situación no se pulsan: se ven más planas para que se note. */
+  .panelTarjetas--info :global(.panelTarjeta) {
+    background: transparent;
+  }
+
+  .graficas {
+    display: grid;
+    gap: var(--space4);
+    margin-top: var(--space6);
+  }
+
+  @media (min-width: 800px) {
+    .graficas {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .grafica figcaption {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space3);
+  }
+
+  .grafica__titulo {
+    font-size: var(--fontSizeCaption);
+    font-weight: var(--fontWeightSemibold);
+    color: var(--colorTextSecondary);
+    text-transform: uppercase;
+    letter-spacing: var(--letterSpacingEyebrow);
+  }
+
+  .grafica__total {
+    font-size: var(--fontSizeCaption);
+    color: var(--colorTextSecondary);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+
+<script>
+  import { clienteSpotter, exigirStaff, mensajeDeError } from '../../scripts/panel/cliente';
+  import { PLAZO_RESPUESTA_HORAS } from '../../domain/panel/denuncias';
+  import {
+    calcularBarras,
+    etiquetaSemana,
+    techo,
+    textoDeBarra,
+    total,
+    type PuntoSemana,
+  } from '../../domain/panel/grafica';
+
+  /** Una tarjeta del inicio. */
+  interface Tarjeta {
+    clave: string;
+    etiqueta: string;
+    /** Solo las de tarea llevan enlace: por eso se distinguen. */
+    enlace?: string;
+    avisaSi?: (valor: number) => boolean;
+  }
+
+  const TAREAS: readonly Tarjeta[] = [
+    {
+      clave: 'denuncias_pendientes',
+      etiqueta: 'Denuncias sin atender',
+      enlace: '/panel/denuncias/',
+      avisaSi: (valor) => valor > 0,
+    },
+    {
+      clave: 'espera_mas_larga_horas',
+      etiqueta: `Horas esperando la más antigua (el plazo son ${PLAZO_RESPUESTA_HORAS})`,
+      enlace: '/panel/denuncias/',
+      avisaSi: (valor) => valor >= PLAZO_RESPUESTA_HORAS,
+    },
+    {
+      clave: 'sitios_por_revisar',
+      etiqueta: 'Sitios esperando revisión',
+      enlace: '/panel/sitios/',
+      avisaSi: (valor) => valor > 0,
+    },
+  ];
+
+  const SITUACION: readonly Tarjeta[] = [
+    { clave: 'personas_activas', etiqueta: 'Personas activas' },
+    { clave: 'altas_semana', etiqueta: 'Altas de los últimos 7 días' },
+    { clave: 'spots_confirmados_semana', etiqueta: 'Spots confirmados en 7 días' },
+    { clave: 'conversaciones_vivas', etiqueta: 'Conversaciones vivas' },
+    { clave: 'comunidades', etiqueta: 'Comunidades' },
+  ];
+
+  const error = document.querySelector<HTMLElement>('[data-error]');
+
+  function avisar(texto: string | null): void {
+    if (!error) return;
+    error.textContent = texto ?? '';
+    error.hidden = texto === null;
+  }
+
+  // --- Las tarjetas -------------------------------------------------------
+
+  function pintarTarjetas(
+    donde: HTMLElement | null,
+    tarjetas: readonly Tarjeta[],
+    metricas: Record<string, number | null>,
+  ): void {
+    if (!donde) return;
+    donde.replaceChildren();
+
+    for (const tarjeta of tarjetas) {
+      const valor = metricas[tarjeta.clave] ?? 0;
+      const avisa = tarjeta.avisaSi?.(valor) ?? false;
+
+      const elemento = document.createElement(tarjeta.enlace ? 'a' : 'div');
+      elemento.className = `panelTarjeta${avisa ? ' panelTarjeta--aviso' : ''}`;
+      if (elemento instanceof HTMLAnchorElement && tarjeta.enlace) elemento.href = tarjeta.enlace;
+
+      const numero = document.createElement('p');
+      numero.className = 'panelTarjeta__numero';
+      numero.textContent = new Intl.NumberFormat('es-ES').format(valor);
+
+      const etiqueta = document.createElement('p');
+      etiqueta.className = 'panelTarjeta__etiqueta';
+      etiqueta.textContent = tarjeta.etiqueta;
+
+      elemento.append(numero, etiqueta);
+      donde.append(elemento);
+    }
+  }
+
+  // --- Las gráficas -------------------------------------------------------
+
+  /** Medidas del dibujo. El SVG se estira solo al ancho que tenga la tarjeta. */
+  const ANCHO = 320;
+  const ALTO = 110;
+  const ALTO_ETIQUETAS = 18;
+
+  const SVG = 'http://www.w3.org/2000/svg';
+
+  /**
+   * Dibuja una gráfica de barras.
+   *
+   * Sin librerías: son ocho rectángulos y dos textos, y traerse una librería de
+   * gráficas para esto costaría más KB que toda la web junta.
+   */
+  function dibujar(figura: HTMLElement, puntos: readonly PuntoSemana[], unidad: string): void {
+    const lienzo = figura.querySelector<HTMLElement>('[data-lienzo]');
+    const resumen = figura.querySelector<HTMLElement>('[data-total]');
+    if (!lienzo) return;
+
+    const suma = total(puntos);
+    if (resumen) resumen.textContent = `${suma} en total`;
+
+    const svg = document.createElementNS(SVG, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${ANCHO} ${ALTO + ALTO_ETIQUETAS}`);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute(
+      'aria-label',
+      `${unidad} por semana, de las ocho últimas: ${puntos.map((punto) => `${etiquetaSemana(punto.semana)}, ${punto.valor}`).join('; ')}.`,
+    );
+
+    // Línea de arriba con el techo: da escala sin cargar la gráfica de rayas.
+    const limite = techo(puntos.map((punto) => punto.valor));
+    const guia = document.createElementNS(SVG, 'line');
+    guia.setAttribute('x1', '0');
+    guia.setAttribute('x2', String(ANCHO));
+    guia.setAttribute('y1', '0.5');
+    guia.setAttribute('y2', '0.5');
+    guia.setAttribute('class', 'grafica__guia');
+    svg.append(guia);
+
+    const tope = document.createElementNS(SVG, 'text');
+    tope.setAttribute('x', '0');
+    tope.setAttribute('y', '12');
+    tope.setAttribute('class', 'grafica__escala');
+    tope.textContent = String(limite);
+    svg.append(tope);
+
+    for (const barra of calcularBarras(puntos, ANCHO, ALTO)) {
+      const rect = document.createElementNS(SVG, 'rect');
+      rect.setAttribute('x', String(barra.x));
+      rect.setAttribute('y', String(barra.y));
+      rect.setAttribute('width', String(barra.ancho));
+      rect.setAttribute('height', String(barra.alto));
+      rect.setAttribute('rx', '3');
+      rect.setAttribute('class', 'grafica__barra');
+
+      // Al pasar por encima se lee la semana y su cifra exacta.
+      const titulo = document.createElementNS(SVG, 'title');
+      titulo.textContent = textoDeBarra(barra, unidad);
+      rect.append(titulo);
+
+      svg.append(rect);
+    }
+
+    // Solo la primera y la última semana llevan etiqueta: las ocho no caben.
+    const primera = puntos[0];
+    const ultima = puntos[puntos.length - 1];
+    if (primera && ultima) {
+      svg.append(textoEje(etiquetaSemana(primera.semana), 0, 'start'));
+      svg.append(textoEje(etiquetaSemana(ultima.semana), ANCHO, 'end'));
+    }
+
+    lienzo.replaceChildren(svg);
+  }
+
+  function textoEje(texto: string, x: number, anclaje: string): SVGTextElement {
+    const elemento = document.createElementNS(SVG, 'text');
+    elemento.setAttribute('x', String(x));
+    elemento.setAttribute('y', String(ALTO + ALTO_ETIQUETAS - 4));
+    elemento.setAttribute('text-anchor', anclaje);
+    elemento.setAttribute('class', 'grafica__escala');
+    elemento.textContent = texto;
+    return elemento;
+  }
+
+  // --- Arranque -----------------------------------------------------------
+
+  if (await exigirStaff()) {
+    const [metricas, series] = await Promise.all([
+      clienteSpotter().rpc('admin_metrics'),
+      clienteSpotter().rpc('admin_series', { p_semanas: 8 }),
+    ]);
+
+    if (metricas.error) {
+      avisar(mensajeDeError(metricas.error));
+    } else {
+      const datos = metricas.data as Record<string, number | null>;
+      pintarTarjetas(document.querySelector('[data-tareas]'), TAREAS, datos);
+      pintarTarjetas(document.querySelector('[data-situacion]'), SITUACION, datos);
+    }
+
+    if (series.error) {
+      avisar(mensajeDeError(series.error));
+    } else {
+      const filas = (series.data ?? []) as Array<{
+        semana: string;
+        spots: number;
+        mensajes: number;
+      }>;
+
+      const spots = document.querySelector<HTMLElement>('[data-grafica="spots"]');
+      const mensajes = document.querySelector<HTMLElement>('[data-grafica="mensajes"]');
+
+      if (spots) {
+        dibujar(
+          spots,
+          filas.map((fila) => ({ semana: fila.semana, valor: fila.spots })),
+          'Spots',
+        );
+      }
+      if (mensajes) {
+        dibujar(
+          mensajes,
+          filas.map((fila) => ({ semana: fila.semana, valor: fila.mensajes })),
+          'mensajes',
+        );
+      }
+    }
+  }
+</script>

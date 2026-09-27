@@ -1,0 +1,497 @@
+/*
+ * Estilos del panel interno.
+ *
+ * Sobrio y denso: es una herramienta de trabajo, no la web de producto. Usa los
+ * mismos tokens que el resto del sitio, así que si cambia el rojo de la marca
+ * cambia también aquí. Lo único propio son las medidas de tabla y formulario,
+ * que en el sitio público no existen.
+ *
+ * Nada de cristal ni de animaciones: aquí lo que se necesita es leer rápido.
+ */
+
+:root {
+  /* Alto de la barra superior, que es fija. */
+  --panelHeaderHeight: 56px;
+  --panelMaxWidth: 1280px;
+}
+
+.panelBody {
+  min-height: 100svh;
+  background: var(--colorBackground);
+  color: var(--colorTextPrimary);
+}
+
+/*
+ * Hasta que la guardia no confirma la sesión, el contenido no se enseña: así
+ * nadie ve de refilón una pantalla que no le corresponde.
+ *
+ * Solo en las pantallas que llevan guardia («data-guardada»). En la de entrar
+ * no hay nada que esconder, y sin esta condición se quedaba en negro.
+ */
+.panelBody[data-guardada]:not([data-listo]) .panelMain {
+  visibility: hidden;
+}
+
+/* --- Barra superior -------------------------------------------------- */
+
+.panelHeader {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space6);
+  min-height: var(--panelHeaderHeight);
+  padding-inline: var(--space4);
+  background: var(--colorSurface);
+  border-bottom: 1px solid var(--colorSeparator);
+}
+
+.panelHeader__marca {
+  font-weight: var(--fontWeightBold);
+  letter-spacing: var(--letterSpacingTitle);
+  text-decoration: none;
+  color: var(--colorTextPrimary);
+}
+
+.panelHeader__marca span {
+  color: var(--colorBrand);
+}
+
+.panelHeader__cuenta {
+  display: flex;
+  align-items: center;
+  gap: var(--space3);
+  margin-inline-start: auto;
+}
+
+.panelHeader__correo {
+  font-size: var(--fontSizeCaption);
+  color: var(--colorTextSecondary);
+}
+
+.panelNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space1);
+}
+
+.panelNav__enlace {
+  padding: var(--space2) var(--space3);
+  border-radius: var(--radiusSmall);
+  font-size: var(--fontSizeCaption);
+  font-weight: var(--fontWeightMedium);
+  color: var(--colorTextSecondary);
+  text-decoration: none;
+}
+
+.panelNav__enlace:hover {
+  background: var(--colorSurfaceRaised);
+  color: var(--colorTextPrimary);
+}
+
+.panelNav__enlace.is-activa {
+  background: var(--colorSurfaceRaised);
+  color: var(--colorTextPrimary);
+}
+
+/* --- Estructura de página -------------------------------------------- */
+
+.panelMain {
+  max-width: var(--panelMaxWidth);
+  margin-inline: auto;
+  padding: var(--space8) var(--space4) var(--space20);
+}
+
+.panelTitulo {
+  font-size: var(--fontSizeTitle3);
+  font-weight: var(--fontWeightBold);
+}
+
+.panelSubtitulo {
+  margin-top: var(--space1);
+  font-size: var(--fontSizeCaption);
+  color: var(--colorTextSecondary);
+}
+
+.panelSeccion {
+  margin-top: var(--space8);
+}
+
+/* --- Tarjetas y números ---------------------------------------------- */
+
+.panelTarjetas {
+  display: grid;
+  gap: var(--space4);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-top: var(--space6);
+}
+
+.panelTarjeta {
+  display: block;
+  padding: var(--space4);
+  background: var(--colorSurface);
+  border: 1px solid var(--colorSeparator);
+  border-radius: var(--radiusMedium);
+  color: inherit;
+  text-decoration: none;
+}
+
+a.panelTarjeta:hover {
+  border-color: var(--colorTextTertiary);
+}
+
+.panelTarjeta--aviso {
+  border-color: var(--colorBrand);
+}
+
+.panelTarjeta__numero {
+  font-size: var(--fontSizeTitle3);
+  font-weight: var(--fontWeightBlack);
+  font-variant-numeric: tabular-nums;
+}
+
+.panelTarjeta--aviso .panelTarjeta__numero {
+  color: var(--colorBrand);
+}
+
+.panelTarjeta__etiqueta {
+  margin-top: var(--space1);
+  font-size: var(--fontSizeCaption);
+  color: var(--colorTextSecondary);
+}
+
+/* --- Gráficas ---------------------------------------------------------- */
+
+/*
+ * Las dibuja el guion, así que sus estilos van aquí y no dentro de la página.
+ * Una gráfica por cifra, y cada una con su color: dos cifras de tamaños muy
+ * distintos en el mismo dibujo se leerían mal aunque compartieran eje.
+ */
+.grafica__lienzo {
+  margin-top: var(--space3);
+}
+
+.grafica__lienzo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grafica__barra {
+  fill: var(--colorTextTertiary);
+}
+
+[data-grafica='spots'] .grafica__barra {
+  fill: var(--panelChartSpots);
+}
+
+[data-grafica='mensajes'] .grafica__barra {
+  fill: var(--panelChartMensajes);
+}
+
+.grafica__barra:hover {
+  /* Al pasar por encima aparece la cifra de esa semana; esto solo la señala. */
+  opacity: 0.75;
+}
+
+/* El eje y la escala no compiten con los datos: son referencias, no contenido. */
+.grafica__guia {
+  stroke: var(--colorSeparator);
+  stroke-width: 1;
+}
+
+.grafica__escala {
+  fill: var(--colorTextTertiary);
+  font-size: 10px;
+}
+
+/* --- Tablas ----------------------------------------------------------- */
+
+.panelTablaEnvoltorio {
+  margin-top: var(--space6);
+  overflow-x: auto;
+  border: 1px solid var(--colorSeparator);
+  border-radius: var(--radiusMedium);
+}
+
+.panelTabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fontSizeCaption);
+}
+
+.panelTabla th,
+.panelTabla td {
+  padding: var(--space3) var(--space4);
+  text-align: start;
+  vertical-align: top;
+  border-bottom: 1px solid var(--colorSeparator);
+}
+
+.panelTabla th {
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorTextSecondary);
+  white-space: nowrap;
+}
+
+.panelTabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.panelTabla tbody tr[data-seleccionable] {
+  cursor: pointer;
+}
+
+.panelTabla tbody tr[data-seleccionable]:hover {
+  background: var(--colorSurface);
+}
+
+.panelTabla__vacia {
+  padding: var(--space8) var(--space4);
+  text-align: center;
+  color: var(--colorTextSecondary);
+}
+
+/* --- Distintivos ------------------------------------------------------ */
+
+.panelEtiqueta {
+  display: inline-block;
+  padding: 2px var(--space2);
+  border-radius: var(--radiusPill);
+  background: var(--colorSurfaceRaised);
+  font-size: var(--fontSizeCaption);
+  white-space: nowrap;
+}
+
+.panelEtiqueta--alerta {
+  background: color-mix(in srgb, var(--colorBrand) 24%, transparent);
+  color: var(--colorBrand);
+}
+
+.panelEtiqueta--urgente {
+  background: var(--colorBrand);
+  color: #ffffff;
+  font-weight: var(--fontWeightSemibold);
+}
+
+/* --- Formularios y botones -------------------------------------------- */
+
+.panelFormulario {
+  display: grid;
+  gap: var(--space4);
+  max-width: 380px;
+}
+
+.panelCampo {
+  display: grid;
+  gap: var(--space2);
+}
+
+.panelCampo label {
+  font-size: var(--fontSizeCaption);
+  color: var(--colorTextSecondary);
+}
+
+.panelCampo input,
+.panelCampo select,
+.panelCampo textarea {
+  width: 100%;
+  padding: var(--space3);
+  background: var(--colorSurface);
+  border: 1px solid var(--colorSeparator);
+  border-radius: var(--radiusSmall);
+  color: var(--colorTextPrimary);
+  font: inherit;
+  font-size: var(--fontSizeBody);
+}
+
+.panelCampo input:focus-visible,
+.panelCampo select:focus-visible,
+.panelCampo textarea:focus-visible {
+  outline: 2px solid var(--colorBrand);
+  outline-offset: 1px;
+}
+
+.panelBoton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space2);
+  min-height: var(--buttonHeightCompact);
+  padding-inline: var(--space4);
+  border: 1px solid var(--colorSeparator);
+  border-radius: var(--radiusSmall);
+  background: var(--colorSurfaceRaised);
+  color: var(--colorTextPrimary);
+  font: inherit;
+  font-size: var(--fontSizeCaption);
+  font-weight: var(--fontWeightMedium);
+  cursor: pointer;
+}
+
+.panelBoton:hover {
+  border-color: var(--colorTextTertiary);
+}
+
+.panelBoton:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+/* Un solo botón rojo por pantalla, como en el resto del sitio. */
+.panelBoton--principal {
+  background: var(--colorBrand);
+  border-color: var(--colorBrand);
+  color: #ffffff;
+  font-weight: var(--fontWeightSemibold);
+}
+
+.panelBoton--principal:hover {
+  background: var(--colorBrandPressed);
+  border-color: var(--colorBrandPressed);
+}
+
+.panelBoton--discreto {
+  background: transparent;
+}
+
+.panelAcciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space2);
+  margin-top: var(--space4);
+}
+
+/* --- Avisos ----------------------------------------------------------- */
+
+.panelAviso {
+  padding: var(--space3) var(--space4);
+  border-radius: var(--radiusSmall);
+  background: var(--colorSurface);
+  border: 1px solid var(--colorSeparator);
+  font-size: var(--fontSizeCaption);
+}
+
+.panelAviso--error {
+  border-color: var(--colorBrand);
+  color: var(--colorBrand);
+}
+
+.panelAviso[hidden] {
+  display: none;
+}
+
+/* --- Ficha de una denuncia -------------------------------------------- */
+
+.panelFicha {
+  display: grid;
+  gap: var(--space6);
+  margin-top: var(--space6);
+}
+
+@media (min-width: 900px) {
+  .panelFicha {
+    grid-template-columns: 1.4fr 1fr;
+    align-items: start;
+  }
+}
+
+.panelBloque {
+  padding: var(--space4);
+  background: var(--colorSurface);
+  border: 1px solid var(--colorSeparator);
+  border-radius: var(--radiusMedium);
+}
+
+.panelBloque + .panelBloque {
+  margin-top: var(--space4);
+}
+
+.panelBloque__titulo {
+  font-size: var(--fontSizeCaption);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorTextSecondary);
+  text-transform: uppercase;
+  letter-spacing: var(--letterSpacingEyebrow);
+}
+
+.panelDatos {
+  display: grid;
+  gap: var(--space2);
+  margin-top: var(--space3);
+  font-size: var(--fontSizeCaption);
+}
+
+.panelDatos div {
+  display: flex;
+  gap: var(--space3);
+  justify-content: space-between;
+}
+
+.panelDatos dt {
+  color: var(--colorTextSecondary);
+}
+
+/* --- Fotos ------------------------------------------------------------- */
+
+/*
+ * Las pinta el guion al abrir una ficha, así que sus estilos viven aquí y no
+ * dentro de la página: los estilos de componente solo alcanzan a lo que ya
+ * está escrito en el HTML.
+ *
+ * Las fotos son privadas. Se piden con un enlace firmado que caduca al minuto.
+ */
+.panelFotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space2);
+  margin-top: var(--space3);
+}
+
+.panelFotos:empty {
+  display: none;
+}
+
+.panelFotos img {
+  width: 120px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radiusSmall);
+  background: var(--colorSurfaceRaised);
+}
+
+/* Una foto ya retirada se ve apagada: sigue estando, pero no la ve nadie. */
+.panelFotos img.is-retirada {
+  opacity: 0.35;
+  outline: 2px solid var(--colorBrand);
+}
+
+/* --- Conversación ------------------------------------------------------ */
+
+.panelMensajes {
+  display: grid;
+  gap: var(--space2);
+  margin-top: var(--space3);
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.panelMensaje {
+  padding: var(--space2) var(--space3);
+  border-radius: var(--radiusSmall);
+  background: var(--colorSurfaceRaised);
+  font-size: var(--fontSizeCaption);
+}
+
+/* El mensaje denunciado, marcado: es lo que hay que mirar. */
+.panelMensaje.is-denunciado {
+  border: 1px solid var(--colorBrand);
+}
+
+.panelMensaje__autor {
+  display: block;
+  color: var(--colorTextSecondary);
+  font-size: 0.75rem;
+}

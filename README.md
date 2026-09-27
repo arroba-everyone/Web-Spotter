@@ -106,6 +106,29 @@ Reglas:
    ponerla a `false`, aparece sola.
 4. **`/descarga/` no se puede borrar**: es el enlace de la bio de Instagram.
 
+## El panel del equipo
+
+En `/panel/` vive la herramienta interna con la que el equipo atiende las
+denuncias que llegan desde la app, revisa cuentas, mantiene las comunidades y
+aprueba los sitios que da de alta la gente. Es privado: se entra con una cuenta
+del equipo y **no se indexa**.
+
+Funciona entero en el navegador, contra el proyecto de Supabase de la app. Eso
+no lo hace menos seguro: **quien decide qué se puede ver y hacer es la base de
+datos**, con RLS y funciones que comprueban que quien llama es del equipo. Las
+pantallas solo evitan enseñar sitios vacíos. El SQL de esas funciones está en
+`supabase/migrations/`, con comentarios y con las líneas para deshacerlo.
+
+Necesita dos variables, las claves **públicas** de ese proyecto (ver
+`.env.example`), tanto en local como en Netlify:
+
+```
+PUBLIC_SPOTTER_SUPABASE_URL
+PUBLIC_SPOTTER_SUPABASE_KEY
+```
+
+La clave de servicio de Supabase **no entra nunca aquí**: se salta RLS entera.
+
 ## Publicar en Netlify
 
 La configuración está en `netlify.toml` (compilación, versión de Node y

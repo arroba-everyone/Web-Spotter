@@ -11,9 +11,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "comprobar": "node --experimental-strip-types scripts/comprobarBurbujas.ts"
+    "comprobar": "node --experimental-strip-types scripts/comprobarBurbujas.ts && node --experimental-strip-types scripts/comprobarGraficas.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "astro": "^7.3.1"
   },
   "allowScripts": {

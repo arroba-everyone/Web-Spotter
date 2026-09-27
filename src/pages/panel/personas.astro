@@ -1,0 +1,358 @@
+---
+/**
+ * Personas: buscar una cuenta y actuar sobre ella sin denuncia delante.
+ *
+ * Lo que se ve es el perfil público, el estado de la cuenta y su historial de
+ * denuncias. No hay bandeja de entrada: leer los chats de la gente no es una
+ * función del panel, solo se ve lo que alguien ha denunciado (§6.4).
+ */
+import PanelLayout from '../../layouts/PanelLayout.astro';
+---
+
+<PanelLayout title="Personas">
+  <h1 class="panelTitulo">Personas</h1>
+  <p class="panelSubtitulo">
+    Sin escribir nada salen las que más denuncias acumulan. Buscar no distingue mayúsculas ni
+    acentos.
+  </p>
+
+  <form class="buscador" data-buscador>
+    <div class="panelCampo">
+      <label for="busqueda">Nombre o usuario</label>
+      <input id="busqueda" type="search" autocomplete="off" data-busqueda />
+    </div>
+    <button type="submit" class="panelBoton">Buscar</button>
+  </form>
+
+  <p class="panelAviso panelAviso--error" data-error hidden></p>
+
+  <div class="panelTablaEnvoltorio">
+    <table class="panelTabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Usuario</th>
+          <th>Ciudad</th>
+          <th>Cuenta</th>
+          <th>Denuncias</th>
+          <th>Última vez</th>
+        </tr>
+      </thead>
+      <tbody data-lista>
+        <tr><td colspan="6" class="panelTabla__vacia">Cargando…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="panelFicha" data-ficha hidden>
+    <div>
+      <div class="panelBloque">
+        <p class="panelBloque__titulo">Perfil</p>
+        <div class="panelFotos" data-fotos></div>
+        <div data-perfil></div>
+      </div>
+
+      <div class="panelBloque">
+        <p class="panelBloque__titulo">Denuncias recibidas</p>
+        <dl class="panelDatos" data-denuncias></dl>
+      </div>
+    </div>
+
+    <div>
+      <div class="panelBloque">
+        <p class="panelBloque__titulo">Medidas anteriores</p>
+        <dl class="panelDatos" data-acciones></dl>
+      </div>
+
+      <div class="panelBloque">
+        <p class="panelBloque__titulo">Qué hacemos</p>
+
+        <div class="panelCampo motivo">
+          <label for="motivo">Motivo (queda guardado con tu nombre)</label>
+          <textarea id="motivo" rows="3" data-motivo></textarea>
+        </div>
+
+        <div class="panelCampo motivo">
+          <label for="hasta">Hasta cuándo (opcional, solo para suspender)</label>
+          <input id="hasta" type="date" data-hasta />
+        </div>
+
+        <div class="panelAcciones">
+          <button type="button" class="panelBoton" data-estado="active">Reactivar</button>
+          <button type="button" class="panelBoton" data-estado="suspended">Suspender</button>
+          <button type="button" class="panelBoton panelBoton--principal" data-estado="banned">
+            Expulsar
+          </button>
+        </div>
+
+        <p class="panelAviso panelAviso--error" data-error-ficha hidden></p>
+      </div>
+    </div>
+  </section>
+</PanelLayout>
+
+<style>
+  .buscador {
+    display: flex;
+    align-items: end;
+    gap: var(--space3);
+    margin-top: var(--space6);
+  }
+
+  .buscador .panelCampo {
+    width: min(320px, 100%);
+  }
+
+  .motivo {
+    margin-top: var(--space3);
+  }
+</style>
+
+<script>
+  import {
+    clienteSpotter,
+    exigirStaff,
+    mensajeDeError,
+    urlFirmada,
+  } from '../../scripts/panel/cliente';
+  import { etiquetaAccion, etiquetaEstado, etiquetaEstadoCuenta, etiquetaMotivo } from '../../domain/panel/denuncias';
+
+  /** Una fila de la búsqueda, tal como la devuelve `admin_search_users`. */
+  interface FilaPersona {
+    id: string;
+    display_name: string | null;
+    username: string | null;
+    status: string;
+    city_name: string | null;
+    created_at: string;
+    last_active_at: string | null;
+    denuncias_recibidas: number;
+  }
+
+  const lista = document.querySelector<HTMLElement>('[data-lista]');
+  const ficha = document.querySelector<HTMLElement>('[data-ficha]');
+  const error = document.querySelector<HTMLElement>('[data-error]');
+  const errorFicha = document.querySelector<HTMLElement>('[data-error-ficha]');
+  const motivo = document.querySelector<HTMLTextAreaElement>('[data-motivo]');
+  const hasta = document.querySelector<HTMLInputElement>('[data-hasta]');
+
+  /** La persona abierta ahora mismo. */
+  let abierta: string | null = null;
+
+  function avisar(elemento: HTMLElement | null, texto: string | null): void {
+    if (!elemento) return;
+    elemento.textContent = texto ?? '';
+    elemento.hidden = texto === null;
+  }
+
+  function celda(texto: string, clase?: string): HTMLTableCellElement {
+    const td = document.createElement('td');
+    td.textContent = texto;
+    if (clase) td.className = clase;
+    return td;
+  }
+
+  function fecha(valor: string | null): string {
+    return valor === null ? 'Nunca' : new Date(valor).toLocaleDateString('es-ES');
+  }
+
+  function dato(donde: HTMLElement, titulo: string, valor: string): void {
+    const fila = document.createElement('div');
+    const dt = document.createElement('dt');
+    dt.textContent = titulo;
+    const dd = document.createElement('dd');
+    dd.textContent = valor;
+    fila.append(dt, dd);
+    donde.append(fila);
+  }
+
+  // --- La búsqueda --------------------------------------------------------
+
+  async function buscar(): Promise<void> {
+    if (!lista) return;
+    avisar(error, null);
+
+    const texto = document.querySelector<HTMLInputElement>('[data-busqueda]')?.value.trim() ?? '';
+    const { data, error: fallo } = await clienteSpotter().rpc('admin_search_users', {
+      p_query: texto === '' ? null : texto,
+      p_limit: 50,
+    });
+
+    if (fallo) {
+      avisar(error, mensajeDeError(fallo));
+      return;
+    }
+
+    pintarLista((data ?? []) as FilaPersona[]);
+  }
+
+  function pintarLista(personas: readonly FilaPersona[]): void {
+    if (!lista) return;
+    lista.replaceChildren();
+
+    if (personas.length === 0) {
+      const fila = document.createElement('tr');
+      const vacia = celda('No hay nadie con ese nombre.', 'panelTabla__vacia');
+      vacia.colSpan = 6;
+      fila.append(vacia);
+      lista.append(fila);
+      return;
+    }
+
+    for (const persona of personas) {
+      const fila = document.createElement('tr');
+      fila.dataset.seleccionable = '';
+      fila.append(
+        celda(persona.display_name ?? 'Sin nombre'),
+        celda(persona.username ? `@${persona.username}` : 'Sin usuario'),
+        celda(persona.city_name ?? 'Sin ciudad'),
+        celda(etiquetaEstadoCuenta(persona.status)),
+        celda(String(persona.denuncias_recibidas)),
+        celda(fecha(persona.last_active_at)),
+      );
+      fila.addEventListener('click', () => void abrir(persona.id));
+      lista.append(fila);
+    }
+  }
+
+  // --- La ficha -----------------------------------------------------------
+
+  async function abrir(id: string): Promise<void> {
+    abierta = id;
+    avisar(errorFicha, null);
+    if (motivo) motivo.value = '';
+    if (hasta) hasta.value = '';
+
+    const { data, error: fallo } = await clienteSpotter().rpc('admin_user_detail', {
+      p_user_id: id,
+    });
+
+    if (fallo) {
+      avisar(error, mensajeDeError(fallo));
+      return;
+    }
+
+    pintarFicha(data as Record<string, any>);
+    ficha?.removeAttribute('hidden');
+    ficha?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function pintarFicha(detalle: Record<string, any>): void {
+    const fotos = document.querySelector<HTMLElement>('[data-fotos]');
+    const perfil = document.querySelector<HTMLElement>('[data-perfil]');
+    const denuncias = document.querySelector<HTMLElement>('[data-denuncias]');
+    const acciones = document.querySelector<HTMLElement>('[data-acciones]');
+    if (!fotos || !perfil || !denuncias || !acciones) return;
+
+    const persona = detalle['persona'] ?? {};
+
+    // Perfil.
+    perfil.replaceChildren();
+    const nombre = document.createElement('p');
+    nombre.textContent = `${persona.display_name} (@${persona.username})`;
+    const estado = document.createElement('p');
+    estado.className = 'panelTarjeta__etiqueta';
+    estado.textContent = `Cuenta ${etiquetaEstadoCuenta(persona.status)} · ${persona.city_name ?? 'sin ciudad'} · alta el ${fecha(persona.created_at)}`;
+    const bio = document.createElement('p');
+    bio.className = 'panelTarjeta__etiqueta';
+    bio.textContent = persona.bio?.trim() || 'Sin descripción.';
+
+    const deportes = (detalle['deportes'] ?? []) as Array<Record<string, string>>;
+    const listaDeportes = document.createElement('p');
+    listaDeportes.className = 'panelTarjeta__etiqueta';
+    listaDeportes.textContent =
+      deportes.length === 0
+        ? 'Sin deportes elegidos.'
+        : deportes.map((deporte) => deporte['sport']).join(' · ');
+
+    perfil.append(nombre, estado, bio, listaDeportes);
+
+    // Fotos, con enlaces que caducan al minuto.
+    fotos.replaceChildren();
+    for (const foto of (detalle['fotos'] ?? []) as Array<Record<string, string>>) {
+      const imagen = document.createElement('img');
+      imagen.alt = `Foto del perfil de ${persona.display_name}`;
+      imagen.loading = 'lazy';
+      if (foto['moderation_status'] !== 'approved') imagen.classList.add('is-retirada');
+      fotos.append(imagen);
+
+      void urlFirmada('user-photos', foto['storage_key']).then((url) => {
+        if (url) imagen.src = url;
+        else imagen.alt = 'Esta foto ya no está disponible.';
+      });
+    }
+
+    // Denuncias recibidas.
+    denuncias.replaceChildren();
+    const recibidas = (detalle['denuncias_recibidas'] ?? []) as Array<Record<string, string>>;
+    if (recibidas.length === 0) {
+      dato(denuncias, 'Ninguna', 'Esta cuenta no ha sido denunciada.');
+    } else {
+      for (const denuncia of recibidas) {
+        dato(
+          denuncias,
+          `${etiquetaMotivo(denuncia['reason'] as never)} · ${etiquetaEstado(denuncia['status'] as never)}`,
+          fecha(denuncia['created_at']),
+        );
+      }
+    }
+
+    // Medidas anteriores.
+    acciones.replaceChildren();
+    const tomadas = (detalle['acciones'] ?? []) as Array<Record<string, string>>;
+    if (tomadas.length === 0) {
+      dato(acciones, 'Ninguna', 'Nunca se ha tomado una medida.');
+    } else {
+      for (const accion of tomadas) {
+        dato(acciones, etiquetaAccion(accion['action'] as never), fecha(accion['created_at']));
+      }
+    }
+  }
+
+  // --- Las medidas --------------------------------------------------------
+
+  async function cambiarEstado(estado: string): Promise<void> {
+    if (!abierta) return;
+
+    const texto = motivo?.value.trim() ?? '';
+    if (texto === '') {
+      avisar(errorFicha, 'Escribe el motivo: queda guardado y explica la decisión.');
+      return;
+    }
+
+    avisar(errorFicha, null);
+    const botones = document.querySelectorAll<HTMLButtonElement>('[data-estado]');
+    botones.forEach((boton) => (boton.disabled = true));
+
+    // La fecha solo tiene sentido al suspender: una expulsión no caduca.
+    const caduca = estado === 'suspended' && hasta?.value ? new Date(hasta.value).toISOString() : null;
+
+    const { error: fallo } = await clienteSpotter().rpc('admin_set_user_status', {
+      p_user_id: abierta,
+      p_status: estado,
+      p_reason: texto,
+      p_expires_at: caduca,
+    });
+
+    botones.forEach((boton) => (boton.disabled = false));
+
+    if (fallo) {
+      avisar(errorFicha, mensajeDeError(fallo));
+      return;
+    }
+
+    await abrir(abierta);
+    await buscar();
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-estado]').forEach((boton) => {
+    boton.addEventListener('click', () => void cambiarEstado(boton.dataset.estado ?? ''));
+  });
+
+  document.querySelector<HTMLFormElement>('[data-buscador]')?.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    void buscar();
+  });
+
+  if (await exigirStaff()) await buscar();
+</script>
