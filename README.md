@@ -165,20 +165,20 @@ Después de publicar, en **Google Search Console**: verificar el dominio y envia
 | Dónde | Qué hay | Origen |
 |---|---|---|
 | `src/assets/capturas/` | 8 pantallas de la app (14/09/2026) | Brief de la 2.0. Las personas son Juan y amigos suyos, autorizadas. Salen en WebP y a varios tamaños |
-| `src/assets/equipo/` | Vuestras fotos | **Vacía**: ver su `LEEME.md` |
+| `src/assets/equipo/` | Vuestras fotos | Las tres, recortadas a 3:4 y sin metadatos: ver su `LEEME.md` |
 | `public/brand/` | Logotipos y símbolo | La agencia, con dos arreglos: ver su `LEEME.md` |
 | `public/badges/` | Distintivos oficiales de App Store y Google Play, en español e inglés | Apple y Google, sin modificar |
 | `public/perfiles/` | Caras de las burbujas | Pexels, licencia libre. **De relleno** |
 | `public/ambiente/` | Foto del cierre | Pexels, licencia libre. **De relleno** |
 
-**Para poner vuestras fotos** basta con soltar `paula.jpg`, `juan.jpg` y
-`pablo.jpg` en `src/assets/equipo/`. No hay que tocar código.
+**Para cambiar una foto del equipo** basta con sustituir `paula.jpg`, `juan.jpg`
+o `pablo.jpg` en `src/assets/equipo/`. No hay que tocar código: la sección las
+busca por nombre al compilar.
 
 ## Lo que falta, y quién lo decide
 
 | Pendiente | Dónde se cambia |
 |---|---|
-| Fotos del equipo | `src/assets/equipo/` |
 | Correo de contacto que atiende Paula | `src/domain/links.ts` |
 | Respuestas de precio, ciudades y fechas para las preguntas | `src/i18n/es.ts` y `en.ts` |
 | Revisión legal de los términos (la privacidad ya enlaza la publicada) | `src/content/legal/` |
